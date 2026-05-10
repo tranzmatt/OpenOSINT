@@ -33,3 +33,8 @@ Repository = "https://github.com/tuo-username/OpenOSINT.git"
 # QUESTA È LA MAGIA PER LA CLI
 [project.scripts]
 openosint = "openosint.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["openosint*"]
+exclude = ["assets*", "docs*", "scripts*", "tests*"]
