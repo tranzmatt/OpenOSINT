@@ -1,9 +1,5 @@
 <div align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/logo.svg">
-    <source media="(prefers-color-scheme: light)" srcset="docs/logo.svg">
-    <img alt="OpenOSINT" src="docs/logo.svg" width="320" style="background-color: white; border-radius: 8px; padding: 10px;">
-  </picture>
+  <img alt="OpenOSINT" src="docs/logo.svg" width="320">
 </div>
 
 <br>
