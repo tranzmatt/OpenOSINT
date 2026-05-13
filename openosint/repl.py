@@ -60,7 +60,7 @@ def _print_banner(provider: str, model: str) -> None:
 
     console.print()
     console.print(Panel.fit(
-        f"[bold #00ff88]OpenOSINT[/] [dim]v2.4.0[/]  [dim]·[/]  {provider_info}",
+        f"[bold #00ff88]OpenOSINT[/] [dim]v2.5.0[/]  [dim]·[/]  {provider_info}",
         border_style="#1e293b",
         padding=(0, 2),
     ))
@@ -68,6 +68,9 @@ def _print_banner(provider: str, model: str) -> None:
         "  Type a target or question. "
         "[dim]'help'[/] for commands. "
         "[dim]'exit'[/] to quit.\n"
+    )
+    Console(stderr=True).print(
+        "[yellow]⭐[/] [dim]If OpenOSINT is useful, star it → https://github.com/OpenOSINT/OpenOSINT[/]"
     )
 
 

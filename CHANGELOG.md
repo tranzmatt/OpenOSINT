@@ -7,6 +7,22 @@ OpenOSINT adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [2.5.0] — 2026-05-13
+
+### Added
+
+- **Star prompt in REPL banner**: the welcome banner now prints a one-time star prompt to stderr — `⭐ If OpenOSINT is useful, star it → https://github.com/OpenOSINT/OpenOSINT` — using Rich with a yellow star emoji and dim URL. Printed to stderr only; never appears in CLI subcommand output or MCP server responses.
+
+### Changed
+
+- Version bumped to `2.5.0` in `pyproject.toml`, `README.md`, and REPL banner.
+
+### Chore
+
+- Removed AI model attribution from contributor metadata so only the human author appears in the GitHub contributor graph.
+
+---
+
 ## [2.4.0] — 2026-05-13
 
 ### Added
@@ -91,6 +107,7 @@ OpenOSINT adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `pyproject.toml` PEP 621 build configuration with `openosint` entry point.
 - MIT license.
 
+[2.5.0]: https://github.com/OpenOSINT/OpenOSINT/releases/tag/v2.5.0
 [2.4.0]: https://github.com/OpenOSINT/OpenOSINT/releases/tag/v2.4.0
 [2.3.0]: https://github.com/OpenOSINT/OpenOSINT/releases/tag/v2.3.0
 [2.2.0]: https://github.com/OpenOSINT/OpenOSINT/releases/tag/v2.2.0
