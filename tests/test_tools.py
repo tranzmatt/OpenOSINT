@@ -356,6 +356,97 @@ class TestSearchShodanFormatters:
 
 
 # ---------------------------------------------------------------------------
+# search_censys — API key missing + input detection
+# ---------------------------------------------------------------------------
+
+class TestSearchCensysMissingApiId:
+    async def test_returns_string_when_api_id_absent(self, monkeypatch):
+        monkeypatch.delenv("CENSYS_API_ID", raising=False)
+        monkeypatch.delenv("CENSYS_SECRET", raising=False)
+        from openosint.tools.search_censys import run_censys_osint
+        result = await run_censys_osint("8.8.8.8")
+        assert isinstance(result, str)
+
+    async def test_error_mentions_censys_api_id(self, monkeypatch):
+        monkeypatch.delenv("CENSYS_API_ID", raising=False)
+        monkeypatch.delenv("CENSYS_SECRET", raising=False)
+        from openosint.tools.search_censys import run_censys_osint
+        result = await run_censys_osint("8.8.8.8")
+        assert "CENSYS_API_ID" in result
+
+    async def test_does_not_raise_when_api_id_absent(self, monkeypatch):
+        monkeypatch.delenv("CENSYS_API_ID", raising=False)
+        from openosint.tools.search_censys import run_censys_osint
+        try:
+            await run_censys_osint("8.8.8.8")
+        except Exception as exc:
+            pytest.fail(f"run_censys_osint raised unexpectedly: {exc}")
+
+
+class TestSearchCensysMissingApiSecret:
+    async def test_returns_string_when_secret_absent(self, monkeypatch):
+        monkeypatch.setenv("CENSYS_API_ID", "dummy-id")
+        monkeypatch.delenv("CENSYS_SECRET", raising=False)
+        from openosint.tools.search_censys import run_censys_osint
+        result = await run_censys_osint("8.8.8.8")
+        assert isinstance(result, str)
+
+    async def test_error_mentions_censys_secret(self, monkeypatch):
+        monkeypatch.setenv("CENSYS_API_ID", "dummy-id")
+        monkeypatch.delenv("CENSYS_SECRET", raising=False)
+        from openosint.tools.search_censys import run_censys_osint
+        result = await run_censys_osint("8.8.8.8")
+        assert "CENSYS_SECRET" in result
+
+    async def test_does_not_raise_when_secret_absent(self, monkeypatch):
+        monkeypatch.setenv("CENSYS_API_ID", "dummy-id")
+        monkeypatch.delenv("CENSYS_SECRET", raising=False)
+        from openosint.tools.search_censys import run_censys_osint
+        try:
+            await run_censys_osint("8.8.8.8")
+        except Exception as exc:
+            pytest.fail(f"run_censys_osint raised unexpectedly: {exc}")
+
+
+class TestSearchCensysInputDetection:
+    def test_detects_ipv4(self):
+        from openosint.tools.search_censys import _is_ip_address
+        assert _is_ip_address("8.8.8.8") is True
+        assert _is_ip_address("192.168.1.1") is True
+        assert _is_ip_address("0.0.0.0") is True
+
+    def test_detects_domain(self):
+        from openosint.tools.search_censys import _is_ip_address
+        assert _is_ip_address("example.com") is False
+        assert _is_ip_address("sub.example.com") is False
+
+    def test_non_ip_string_is_not_ip(self):
+        from openosint.tools.search_censys import _is_ip_address
+        assert _is_ip_address("not-an-ip") is False
+        assert _is_ip_address("google.com") is False
+
+
+class TestSearchCensysHandlesInvalidIp:
+    async def test_does_not_raise_on_invalid_input(self, monkeypatch):
+        monkeypatch.delenv("CENSYS_API_ID", raising=False)
+        from openosint.tools.search_censys import run_censys_osint
+        try:
+            result = await run_censys_osint("999.999.999.999")
+            assert isinstance(result, str)
+        except Exception as exc:
+            pytest.fail(f"run_censys_osint raised unexpectedly: {exc}")
+
+    async def test_does_not_raise_on_domain(self, monkeypatch):
+        monkeypatch.delenv("CENSYS_API_ID", raising=False)
+        from openosint.tools.search_censys import run_censys_osint
+        try:
+            result = await run_censys_osint("nonexistent.example.invalid")
+            assert isinstance(result, str)
+        except Exception as exc:
+            pytest.fail(f"run_censys_osint raised unexpectedly: {exc}")
+
+
+# ---------------------------------------------------------------------------
 # Session history — save, load, count, clear
 # ---------------------------------------------------------------------------
 

@@ -28,6 +28,7 @@ from openosint.tools.search_email import run_email_osint
 from openosint.tools.search_ip import run_ip_osint
 from openosint.tools.search_paste import run_paste_osint
 from openosint.tools.search_phone import run_phone_osint
+from openosint.tools.search_censys import run_censys_osint
 from openosint.tools.search_shodan import run_shodan_osint
 from openosint.tools.search_username import run_username_osint
 from openosint.tools.search_virustotal import run_virustotal_osint
@@ -205,6 +206,25 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "required": ["target"],
         },
     },
+    {
+        "name": "search_censys",
+        "description": (
+            "Search Censys for internet-facing infrastructure data. "
+            "For IPs: returns open ports, services, ASN. "
+            "For domains: returns certificate history, SANs, and issuer information. "
+            "Requires CENSYS_API_ID and CENSYS_SECRET."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "target": {
+                    "type": "string",
+                    "description": "IPv4 address or domain name to look up.",
+                }
+            },
+            "required": ["target"],
+        },
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -223,6 +243,7 @@ _TOOL_MAP: dict[str, Any] = {
     "search_phone":      lambda a: run_phone_osint(a["phone"], timeout_seconds=60),
     "search_shodan":     lambda a: run_shodan_osint(a["query"], timeout_seconds=30),
     "search_virustotal": lambda a: run_virustotal_osint(a["target"], timeout_seconds=30),
+    "search_censys":     lambda a: run_censys_osint(a["target"], timeout_seconds=30),
 }
 
 SYSTEM_PROMPT = """You are OpenOSINT, an expert OSINT analyst assistant running in a terminal.
@@ -232,7 +253,8 @@ INVESTIGATION STRATEGY:
 - For an email: run search_email and search_breach.
 - For a username: run search_username and search_paste.
 - For a domain: run search_whois and search_domain.
-- For an IP: run search_ip and optionally search_shodan for open ports/vulns.
+- For an IP: run search_ip and optionally search_shodan or search_censys for open ports/services.
+- For a domain or IP infrastructure: use search_censys for certificate history and port data.
 - For a Shodan query or banners: use search_shodan.
 - Chain tools intelligently: use findings from each step to decide the next.
 - Never run search_email or search_breach with a full name — only with actual email addresses.

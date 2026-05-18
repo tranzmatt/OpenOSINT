@@ -37,6 +37,7 @@ openosint email ADDRESS [-t N]             # direct email scan, no AI
 openosint username HANDLE [-t N]           # direct username scan, no AI
 openosint shodan QUERY [-t N]              # Shodan lookup, no AI
 openosint virustotal TARGET [-t N]         # VirusTotal lookup, no AI
+openosint censys TARGET [-t N]             # Censys lookup, no AI
 openosint multi TARGETS                    # multi-target parallel investigation
 openosint --parallel email ADDRESS         # parallel: search_email + search_breach
 openosint --parallel username HANDLE       # parallel: search_username + search_paste
@@ -55,7 +56,7 @@ openosint [-v] [--api-key KEY]
 
 **Direct CLI** — run individual OSINT tools without AI for scripting or quick lookups.
 
-**MCP Server** — expose all 11 tools to any MCP-compatible AI client (Claude Code, Claude Desktop).
+**MCP Server** — expose all 12 tools to any MCP-compatible AI client (Claude Code, Claude Desktop).
 
 The framework is built on Python `asyncio`. All external binaries run as managed subprocesses with hard timeout enforcement. The AI layer uses the Anthropic native tool use API — or a local [Ollama](https://ollama.com) model (no API key required). When using Anthropic, the model issues hard stops when it needs a tool, your code executes it, the real output goes back. Hallucination in tool results is structurally impossible.
 
@@ -128,6 +129,8 @@ If a binary is absent, the corresponding tool returns a descriptive error string
 | `IPINFO_TOKEN` | `search_ip` | ipinfo.io token for higher rate limits |
 | `SHODAN_API_KEY` | `search_shodan` | Shodan API key — [get one here](https://account.shodan.io) |
 | `VIRUSTOTAL_API_KEY` | `search_virustotal` | VirusTotal API key — [get one here](https://www.virustotal.com/gui/my-apikey) |
+| `CENSYS_API_ID` | `search_censys` | Censys API ID — [get one here](https://censys.io/account) |
+| `CENSYS_SECRET` | `search_censys` | Censys API Secret — [get one here](https://censys.io/account) |
 
 **Optional Python packages:**
 
@@ -136,6 +139,7 @@ If a binary is absent, the corresponding tool returns a descriptive error string
 | `ollama` | Local LLM backend (no API key) | `pip install ollama` |
 | `shodan` | Shodan API client | `pip install shodan` |
 | `reportlab` | PDF report export | `pip install reportlab` |
+| `censys` | Censys API client | `pip install censys` |
 
 ---
 
@@ -202,6 +206,7 @@ Reports are auto-saved after every investigation containing structured findings.
 | `search_phone` | phoneinfoga | Carrier, country, line type |
 | `search_shodan` | Shodan API | Open ports, banners, CVEs |
 | `search_virustotal` | VirusTotal API v3 | Malicious/clean verdict from 70+ engines |
+| `search_censys` | Censys API | Open ports, services, certificate history |
 
 ### search_email
 
@@ -423,6 +428,45 @@ Requires `VIRUSTOTAL_API_KEY` environment variable.
 
 ---
 
+### search_censys
+
+Queries the [Censys](https://censys.io) API for internet-facing infrastructure data. Auto-detects the input type: IPv4 address → host view (open ports, services, ASN, country); domain → certificate search (SANs, issuer, first/last seen).
+
+**MCP parameter:** `target` (string, required) — IPv4 address or domain name
+
+**CLI:**
+```bash
+$ openosint censys 8.8.8.8
+$ openosint censys example.com
+$ openosint censys 8.8.8.8 -t 30
+```
+
+**Output (IP):**
+```
+[Censys] Type: ip
+[Censys] IP: 8.8.8.8
+[Censys] Open Ports: 53, 443, 853
+[Censys] Services: DNS, HTTPS, DNS-over-TLS
+[Censys] ASN: AS15169 Google LLC
+[Censys] Country: United States
+[Censys] Last Updated: 2026-05-18
+```
+
+**Output (domain):**
+```
+[Censys] Type: domain
+[Censys] Domain: example.com
+[Censys] Certificates Found: 12
+[Censys] Issuer: Let's Encrypt
+[Censys] SANs: example.com, www.example.com, api.example.com
+[Censys] First Seen: 2020-01-15
+[Censys] Last Seen: 2026-05-10
+```
+
+Requires `CENSYS_API_ID` and `CENSYS_SECRET` environment variables.
+
+---
+
 ## DIRECT CLI COMMANDS
 
 ```
@@ -444,6 +488,11 @@ Shodan host lookup (IP) or keyword search. Default timeout: 30s. Requires `SHODA
 virustotal TARGET [-t SECONDS]
 ```
 Check an IPv4 address, domain, URL, or file hash (MD5/SHA-1/SHA-256) against VirusTotal. Auto-detects input type. Default timeout: 30s. Requires `VIRUSTOTAL_API_KEY`.
+
+```
+censys TARGET [-t SECONDS]
+```
+Censys host view for an IPv4 address (open ports, services, ASN) or certificate search for a domain (SANs, issuer, first/last seen). Default timeout: 30s. Requires `CENSYS_API_ID` and `CENSYS_SECRET`.
 
 ```
 multi TARGETS
@@ -556,9 +605,20 @@ $ claude
 | `openosint/tools/search_phone.py` | Phone intelligence. |
 | `openosint/tools/search_shodan.py` | Shodan host/search lookup. |
 | `openosint/tools/search_virustotal.py` | VirusTotal IP/domain/URL/hash lookup. |
+| `openosint/tools/search_censys.py` | Censys IP host view and domain certificate search. |
 | `openosint/tools/exceptions.py` | Shared exception hierarchy. |
 | `pyproject.toml` | Build configuration (PEP 621). |
 | `DISCLAIMER.md` | Legal notice and ethical use policy. |
+
+---
+
+## INTEGRATIONS
+
+| Provider | Data | Status |
+|---|---|---|
+| Shodan | Network assets, open ports, CVEs | v2.4.0 |
+| VirusTotal | Malware detection, 70+ engines | v2.7.0 |
+| Censys | Open ports, services, certificate history | v2.9.0 |
 
 ---
 
@@ -584,4 +644,4 @@ MIT License. See [LICENSE](LICENSE).
 
 ---
 
-*OpenOSINT 2.8.0 &mdash; May 17, 2026*
+*OpenOSINT 2.9.0 &mdash; May 18, 2026*

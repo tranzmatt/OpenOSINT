@@ -28,6 +28,7 @@ import sys
 
 from openosint.json_output import format_tool_result
 from openosint.tools.search_breach import run_breach_osint
+from openosint.tools.search_censys import run_censys_osint
 from openosint.tools.search_email import run_email_osint
 from openosint.tools.search_paste import run_paste_osint
 from openosint.tools.search_shodan import run_shodan_osint
@@ -64,6 +65,8 @@ def _build_parser() -> argparse.ArgumentParser:
             "  openosint email target@example.com          # direct email scan\n"
             "  openosint username johndoe99                # direct username scan\n"
             "  openosint shodan 8.8.8.8                    # Shodan host lookup\n"
+            "  openosint censys 8.8.8.8                   # Censys host lookup\n"
+            "  openosint censys example.com               # Censys certificate search\n"
             "  openosint multi targets.txt                 # multi-target from file\n"
             "  openosint multi a@x.com,b@y.com             # multi-target inline\n"
             "  openosint --parallel email target@example.com\n"
@@ -195,6 +198,25 @@ def _build_parser() -> argparse.ArgumentParser:
         help="IPv4 address, domain, full URL, or file hash (MD5/SHA-1/SHA-256).",
     )
     virustotal_cmd.add_argument(
+        "-t", "--timeout",
+        type=int,
+        default=30,
+        metavar="SECONDS",
+        help="Request timeout (default: 30).",
+    )
+
+    # censys
+    censys_cmd = subparsers.add_parser(
+        "censys",
+        help="Censys lookup for IP or domain (no AI). Requires CENSYS_API_ID and CENSYS_SECRET.",
+    )
+    censys_cmd.add_argument(
+        "target",
+        type=str,
+        metavar="TARGET",
+        help="IPv4 address for host lookup, or domain for certificate search.",
+    )
+    censys_cmd.add_argument(
         "-t", "--timeout",
         type=int,
         default=30,
@@ -360,6 +382,19 @@ async def _handle_virustotal(
         _print_result(result)
 
 
+async def _handle_censys(
+    target: str,
+    timeout: int,
+    json_output: bool = False,
+) -> None:
+    print(f"[*] Censys lookup: {target}", file=sys.stderr)
+    result = await run_censys_osint(target=target, timeout_seconds=timeout)
+    if json_output:
+        _emit_json(format_tool_result("search_censys", target, result))
+    else:
+        _print_result(result)
+
+
 async def _handle_multi(
     targets_arg: str,
     api_key: str | None = None,
@@ -469,6 +504,8 @@ async def _async_main() -> None:
         await _handle_shodan(args.query, args.timeout, json_output=json_output)
     elif args.command == "virustotal":
         await _handle_virustotal(args.target, args.timeout, json_output=json_output)
+    elif args.command == "censys":
+        await _handle_censys(args.target, args.timeout, json_output=json_output)
     elif args.command == "multi":
         await _handle_multi(
             args.targets, api_key=getattr(args, "api_key", None), is_pdf_disabled=is_pdf_disabled

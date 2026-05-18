@@ -1,8 +1,8 @@
 # openosint/mcp_server.py
 """
-OpenOSINT MCP Server — v2.8.0
+OpenOSINT MCP Server — v2.9.0
 
-Exposes all 11 OSINT tool capabilities plus multi-target investigation
+Exposes all 12 OSINT tool capabilities plus multi-target investigation
 to MCP-compliant AI clients over standard I/O.
 """
 
@@ -24,6 +24,7 @@ from openosint.tools.search_email import run_email_osint
 from openosint.tools.search_ip import run_ip_osint
 from openosint.tools.search_paste import run_paste_osint
 from openosint.tools.search_phone import run_phone_osint
+from openosint.tools.search_censys import run_censys_osint
 from openosint.tools.search_shodan import run_shodan_osint
 from openosint.tools.search_username import run_username_osint
 from openosint.tools.search_virustotal import run_virustotal_osint
@@ -111,6 +112,16 @@ async def list_tools() -> list[Tool]:
             inputSchema=_with_json({"type": "object", "properties": {"target": {"type": "string"}}, "required": ["target"]}),
         ),
         Tool(
+            name="search_censys",
+            description=(
+                "Search Censys for internet-facing infrastructure data. "
+                "IP address → open ports, services, ASN, country. "
+                "Domain → certificate history, SANs, issuer, first/last seen. "
+                "Requires CENSYS_API_ID and CENSYS_SECRET env vars."
+            ),
+            inputSchema=_with_json({"type": "object", "properties": {"target": {"type": "string"}}, "required": ["target"]}),
+        ),
+        Tool(
             name="investigate_multi",
             description=(
                 "Investigate multiple targets in parallel using the full OSINT tool chain. "
@@ -145,6 +156,7 @@ _HANDLERS: dict[str, tuple] = {
     "search_phone":      (lambda a: run_phone_osint(a["phone"], timeout_seconds=60),           lambda a: a["phone"]),
     "search_shodan":     (lambda a: run_shodan_osint(a["query"], timeout_seconds=30),          lambda a: a["query"]),
     "search_virustotal": (lambda a: run_virustotal_osint(a["target"], timeout_seconds=30),     lambda a: a["target"]),
+    "search_censys":     (lambda a: run_censys_osint(a["target"], timeout_seconds=30),         lambda a: a["target"]),
 }
 
 

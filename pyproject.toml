@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "openosint"
-version = "2.8.0"
-description = "AI-powered OSINT agent, MCP server, and CLI. Interactive REPL + 11 tools. Anthropic Claude or local Ollama. For authorized security research use only."
+version = "2.9.0"
+description = "AI-powered OSINT agent, MCP server, and CLI. Interactive REPL + 12 tools. Anthropic Claude or local Ollama. For authorized security research use only."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -62,10 +62,14 @@ ollama = [
 pdf = [
     "reportlab>=4.0.0",
 ]
+censys = [
+    "censys>=2.2.0",
+]
 all = [
     "shodan>=1.31.0",
     "ollama>=0.3.0",
     "reportlab>=4.0.0",
+    "censys>=2.2.0",
 ]
 
 [tool.setuptools.packages.find]

@@ -7,6 +7,27 @@ OpenOSINT adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [2.9.0] — 2026-05-18
+
+### Added
+
+- **Censys integration** (`openosint/tools/search_censys.py`): new tool `search_censys` that queries the Censys Search API for internet-facing infrastructure data. Auto-detects input type: IPv4 address → `CensysHosts().view()` returning open ports, services, ASN, and country; domain → `CensysCerts().search()` with `parsed.names` filter returning certificate count, issuer, SANs, and first/last seen dates. Returns descriptive error strings for missing credentials, rate limits, and network errors. Requires `CENSYS_API_ID` and `CENSYS_SECRET` environment variables. Available as CLI subcommand `openosint censys TARGET [-t SECONDS]`, in the AI agent tool loop, and as an MCP tool.
+- **Auto-detection of IP vs domain for Censys queries**: IPv4 pattern → host view; everything else → certificate search.
+
+### Changed
+
+- Version bumped to `2.9.0` in `pyproject.toml`, `README.md`, MCP server docstring.
+- Agent `SYSTEM_PROMPT` updated to mention `search_censys` for IP and domain infrastructure investigations.
+- README: tools table, optional env vars, optional packages, FILES section, and CLI synopsis updated to include `search_censys`.
+- `pyproject.toml`: added `censys>=2.2.0` as optional dependency under `[project.optional-dependencies]` `censys` and `all` extras.
+
+### Docs
+
+- Updated `README.md` tools table and env vars with `search_censys`, `CENSYS_API_ID`, `CENSYS_SECRET`.
+- Added Integrations table to `README.md`.
+
+---
+
 ## [2.8.0] — 2026-05-17
 
 ### Refactor
@@ -158,6 +179,7 @@ OpenOSINT adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `pyproject.toml` PEP 621 build configuration with `openosint` entry point.
 - MIT license.
 
+[2.9.0]: https://github.com/OpenOSINT/OpenOSINT/releases/tag/v2.9.0
 [2.7.0]: https://github.com/OpenOSINT/OpenOSINT/releases/tag/v2.7.0
 [2.6.0]: https://github.com/OpenOSINT/OpenOSINT/releases/tag/v2.6.0
 [2.5.0]: https://github.com/OpenOSINT/OpenOSINT/releases/tag/v2.5.0
