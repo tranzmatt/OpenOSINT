@@ -23,12 +23,12 @@ import anthropic
 
 from openosint.tools.generate_dorks import run_dork_osint
 from openosint.tools.search_breach import run_breach_osint
+from openosint.tools.search_censys import run_censys_osint
 from openosint.tools.search_domain import run_domain_osint
 from openosint.tools.search_email import run_email_osint
 from openosint.tools.search_ip import run_ip_osint
 from openosint.tools.search_paste import run_paste_osint
 from openosint.tools.search_phone import run_phone_osint
-from openosint.tools.search_censys import run_censys_osint
 from openosint.tools.search_shodan import run_shodan_osint
 from openosint.tools.search_username import run_username_osint
 from openosint.tools.search_virustotal import run_virustotal_osint
