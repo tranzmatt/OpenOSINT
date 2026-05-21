@@ -4,18 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>openosint(1)</title>
-<meta name="description" content="OpenOSINT 2.2.0 — AI-powered OSINT agent, MCP server, and CLI. 9 tools, interactive REPL, autonomous investigations.">
+<meta name="description" content="OpenOSINT 2.12.0 — AI-powered OSINT agent, MCP server, CLI, and web interface. 13 tools, interactive REPL, autonomous investigations.">
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div id="nav">
+<a href="/" style="color:#3fb950;font-weight:bold;">← Back to App</a>
 <a href="#name">NAME</a>
 <a href="#synopsis">SYNOPSIS</a>
 <a href="#description">DESCRIPTION</a>
 <a href="#demo">DEMO</a>
 <a href="#architecture">ARCHITECTURE</a>
 <a href="#installation">INSTALLATION</a>
+<a href="#web">WEB UI</a>
 <a href="#repl">REPL</a>
 <a href="#tools">TOOLS</a>
 <a href="#commands">COMMANDS</a>
@@ -68,11 +70,21 @@ openosint [<b>-v</b>] [<b>--api-key</b> <u>key</u>]</pre>
 
 <h2 id="demo">DEMO</h2>
 <div class="indent">
-<p>Interactive REPL session — email investigation with breach check and username tracing.</p>
-<div style="text-align: center; margin: 12px 0 20px 0;">
-  <img src="https://raw.githubusercontent.com/OpenOSINT/OpenOSINT/main/assets/demo.gif"
-       alt="OpenOSINT demo"
-       style="max-width: 100%; border: 1px solid #333; display: inline-block;">
+<div style="display:flex; gap:24px; flex-wrap:wrap; margin-bottom:14px;">
+  <div style="flex:1; min-width:280px;">
+    <p><b>Web Interface</b></p>
+    <img src="assets/web-demo.gif"
+         alt="OpenOSINT web interface demo"
+         style="max-width:100%; border:1px solid #333; display:block;">
+    <p style="margin-top:6px;"><em>Browser-based chat UI &mdash; run <code>openosint web</code></em></p>
+  </div>
+  <div style="flex:1; min-width:280px;">
+    <p><b>Terminal</b></p>
+    <img src="https://raw.githubusercontent.com/OpenOSINT/OpenOSINT/main/assets/demo.gif"
+         alt="OpenOSINT terminal demo"
+         style="max-width:100%; border:1px solid #333; display:block;">
+    <p style="margin-top:6px;"><em>Interactive REPL and CLI</em></p>
+  </div>
 </div>
 </div>
 
@@ -114,6 +126,29 @@ $ export ANTHROPIC_API_KEY=sk-ant-...</pre>
 <tr><td><code>IPINFO_TOKEN</code></td><td><code>search_ip</code></td><td>ipinfo.io token for higher rate limits</td></tr>
 <tr><td><code>IP2LOCATION_API_KEY</code></td><td><code>search_ip2location</code></td><td>IP2Location API key &mdash; <a href="https://www.ip2location.io/pricing" target="_blank" rel="noopener">get one here</a></td></tr>
 </table>
+</div>
+
+<h2 id="web">WEB INTERFACE</h2>
+<div class="indent">
+<p>A browser-based AI chat interface for all OSINT tools with real-time streaming output, tool result cards, and light/dark theme.</p>
+
+<p><b>Local</b></p>
+<pre>pip install "openosint[web]"
+openosint web</pre>
+<p>Opens automatically at <code>http://localhost:8080</code></p>
+
+<p><b>Features</b></p>
+<ul>
+<li>AI chat interface with tool results inline</li>
+<li>Light/dark theme toggle (preference saved in browser)</li>
+<li>Full conversation history per session</li>
+<li>Ollama support for local inference (no API key required)</li>
+<li>API key management via Settings modal</li>
+</ul>
+
+<p><b>Hosted version</b></p>
+<p>A hosted version at <code>openosint.tech/app</code> is coming soon. <span style="background:#d29922;color:#0d1117;font-size:0.7em;font-weight:bold;padding:1px 5px;border-radius:3px;vertical-align:middle;">COMING SOON</span><br>
+Currently the web interface runs locally only.</p>
 </div>
 
 <h2 id="repl">INTERACTIVE REPL</h2>
@@ -412,8 +447,8 @@ $ pip install -e .</pre>
 <div id="footer">
 <table width="100%" cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td class="mhead-l">OpenOSINT 2.9.0</td>
-<td class="mhead-c">May 18, 2026</td>
+<td class="mhead-l">OpenOSINT 2.12.0</td>
+<td class="mhead-c">May 21, 2026</td>
 <td class="mhead-r">OPENOSINT(1)</td>
 </tr>
 </table>

@@ -10,7 +10,7 @@ Routes:
   GET  /api/stream/{tool_name} stream output via Server-Sent Events
   POST /api/chat               AI chat with tool_use (SSE)
   POST /api/setup              save API keys to .env
-  GET  /docs/*                 docs-site static files (mounted)
+  GET  /docs/*                 docs/ static files (mounted)
 """
 
 from __future__ import annotations
@@ -864,7 +864,7 @@ def create_app() -> FastAPI:
     # Static mounts — docs, then catch-all for frontend
     # ------------------------------------------------------------------
 
-    docs_path = _ROOT / "docs-site"
+    docs_path = _ROOT / "docs"
     if docs_path.exists():
         app.mount("/docs", StaticFiles(directory=str(docs_path), html=True), name="docs")
 
