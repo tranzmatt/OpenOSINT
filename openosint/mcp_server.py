@@ -1,12 +1,13 @@
 # openosint/mcp_server.py
 """
-OpenOSINT MCP Server — v2.14.0
+OpenOSINT MCP Server — v2.15.0
 
-Exposes all 14 OSINT tool capabilities plus multi-target investigation
+Exposes all 16 OSINT tool capabilities plus multi-target investigation
 to MCP-compliant AI clients over standard I/O. Tools include:
 search_email, search_username, search_breach, search_whois, search_ip,
 search_domain, generate_dorks, search_paste, search_phone, search_shodan,
-search_virustotal, search_censys, search_ip2location, search_abuseipdb.
+search_virustotal, search_censys, search_ip2location, search_abuseipdb,
+search_github, search_dns.
 """
 
 from __future__ import annotations
@@ -24,8 +25,10 @@ from openosint.tools.generate_dorks import run_dork_osint
 from openosint.tools.search_abuseipdb import run_abuseipdb_osint
 from openosint.tools.search_breach import run_breach_osint
 from openosint.tools.search_censys import run_censys_osint
+from openosint.tools.search_dns import run_dns_osint
 from openosint.tools.search_domain import run_domain_osint
 from openosint.tools.search_email import run_email_osint
+from openosint.tools.search_github import run_github_osint
 from openosint.tools.search_ip import run_ip_osint
 from openosint.tools.search_ip2location import run_ip2location_osint
 from openosint.tools.search_paste import run_paste_osint
@@ -221,6 +224,38 @@ async def list_tools() -> list[Tool]:
             ),
         ),
         Tool(
+            name="search_github",
+            description=(
+                "Search GitHub for a username, email, or keyword. "
+                "For exact username matches: returns full profile, recent repos, and emails "
+                "discovered from commit history. For other queries: top 5 matching accounts. "
+                "Optional GITHUB_TOKEN env var raises rate limit from 60 to 5000 req/h."
+            ),
+            inputSchema=_with_json(
+                {
+                    "type": "object",
+                    "properties": {"query": {"type": "string"}},
+                    "required": ["query"],
+                }
+            ),
+        ),
+        Tool(
+            name="search_dns",
+            description=(
+                "Comprehensive DNS record enumeration (A, AAAA, MX, NS, TXT, CNAME, SOA). "
+                "Highlights email security misconfigurations: missing SPF, weak SPF policy, "
+                "missing or unenforced DMARC, and absent DKIM across common selectors. "
+                "No external API or credentials required."
+            ),
+            inputSchema=_with_json(
+                {
+                    "type": "object",
+                    "properties": {"domain": {"type": "string"}},
+                    "required": ["domain"],
+                }
+            ),
+        ),
+        Tool(
             name="investigate_multi",
             description=(
                 "Investigate multiple targets in parallel using the full OSINT tool chain. "
@@ -293,6 +328,14 @@ _HANDLERS: dict[str, tuple] = {
     "search_abuseipdb": (
         lambda a: run_abuseipdb_osint(a["ip"], timeout_seconds=30),
         lambda a: a["ip"],
+    ),
+    "search_github": (
+        lambda a: run_github_osint(a["query"], timeout_seconds=30),
+        lambda a: a["query"],
+    ),
+    "search_dns": (
+        lambda a: run_dns_osint(a["domain"], timeout_seconds=10),
+        lambda a: a["domain"],
     ),
 }
 

@@ -25,8 +25,10 @@ from openosint.tools.generate_dorks import run_dork_osint
 from openosint.tools.search_abuseipdb import run_abuseipdb_osint
 from openosint.tools.search_breach import run_breach_osint
 from openosint.tools.search_censys import run_censys_osint
+from openosint.tools.search_dns import run_dns_osint
 from openosint.tools.search_domain import run_domain_osint
 from openosint.tools.search_email import run_email_osint
+from openosint.tools.search_github import run_github_osint
 from openosint.tools.search_ip import run_ip_osint
 from openosint.tools.search_ip2location import run_ip2location_osint
 from openosint.tools.search_paste import run_paste_osint
@@ -259,6 +261,48 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "required": ["ip"],
         },
     },
+    {
+        "name": "search_github",
+        "description": (
+            "Search GitHub for a username, email address, or keyword. "
+            "For exact username matches: returns full profile (bio, location, company, "
+            "follower counts, public repos/gists), recent repository list with languages "
+            "and star counts, and email addresses discovered from public commit history. "
+            "For other queries: returns the top 5 matching GitHub accounts. "
+            "Optional GITHUB_TOKEN raises the unauthenticated rate limit (60 req/h) to 5000 req/h."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "GitHub username, email address, or keyword to search for.",
+                }
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "search_dns",
+        "description": (
+            "Comprehensive DNS record enumeration for a domain including A, AAAA, MX, NS, "
+            "TXT, CNAME, and SOA records. Highlights email security misconfigurations: "
+            "missing SPF, weak SPF policy (+all/~all), missing or unenforced DMARC (p=none), "
+            "and missing DKIM across common selectors. No external API or credentials required. "
+            "Use for domain investigations alongside search_whois and search_domain — it reveals "
+            "email infrastructure and security posture."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "domain": {
+                    "type": "string",
+                    "description": "Target domain (e.g. example.com).",
+                }
+            },
+            "required": ["domain"],
+        },
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -280,6 +324,8 @@ _TOOL_MAP: dict[str, Any] = {
     "search_censys": lambda a: run_censys_osint(a["target"], timeout_seconds=30),
     "search_ip2location": lambda a: run_ip2location_osint(a["ip"], timeout_seconds=30),
     "search_abuseipdb": lambda a: run_abuseipdb_osint(a["ip"], timeout_seconds=30),
+    "search_github": lambda a: run_github_osint(a["query"], timeout_seconds=30),
+    "search_dns": lambda a: run_dns_osint(a["domain"], timeout_seconds=10),
 }
 
 SYSTEM_PROMPT = """You are OpenOSINT, an expert OSINT analyst assistant running in a terminal.
@@ -288,8 +334,9 @@ INVESTIGATION STRATEGY:
 - For a full name target: always start with generate_dorks to discover real identifiers.
 - For an email: run search_email and search_breach.
 - For a username: run search_username and search_paste.
-- For a domain: run search_whois and search_domain.
+- For a domain: run search_whois, search_domain, and search_dns to reveal subdomains, registration data, DNS records, and email security posture.
 - For an IP: run search_ip and optionally search_shodan or search_censys for open ports/services.
+- For a GitHub username or handle: use search_github to retrieve profile data, repos, and commit-discovered emails.
 - For IP reputation/abuse: use search_abuseipdb to get the abuseConfidenceScore — a score above 50% indicates a high-risk IP; combine with search_ip or search_shodan for full context.
 - For a domain or IP infrastructure: use search_censys for certificate history and port data.
 - For a Shodan query or banners: use search_shodan.
