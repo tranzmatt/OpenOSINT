@@ -12,6 +12,7 @@
 [![PyPI downloads](https://img.shields.io/pypi/dm/openosint?style=flat-square&label=PyPI%20downloads)](https://pypi.org/project/openosint/)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue?style=flat-square)](https://www.python.org/)
 [![License MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
+[![Commercial License](https://img.shields.io/badge/Commercial-from%20%249%2Fmo-blue)](COMMERCIAL.md)
 [![MCP](https://img.shields.io/badge/protocol-MCP-blueviolet?style=flat-square)](https://modelcontextprotocol.io/)
 [![GitHub Stars](https://img.shields.io/github/stars/OpenOSINT/OpenOSINT?style=flat-square)](https://github.com/OpenOSINT/OpenOSINT/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/OpenOSINT/OpenOSINT?style=flat-square)](https://github.com/OpenOSINT/OpenOSINT/network/members)
@@ -523,9 +524,17 @@ Issues and pull requests are welcome. Please read [DISCLAIMER.md](DISCLAIMER.md)
 
 OpenOSINT is open source under the [MIT License](./LICENSE) — free for personal, academic, and open source use.
 
-For use in **closed-source commercial products**, a [Commercial License](./COMMERCIAL-LICENSE.md) is available starting at $9/month.
+For use in **closed-source commercial products**, a commercial license is required.
 
-→ [View Commercial License details](./COMMERCIAL-LICENSE.md)
+| Tier | Price | Developers | Products | Support |
+|------|-------|------------|----------|---------|
+| **Starter** | $9/month | Up to 3 | 1 commercial product | Email, 72h |
+| **Pro** | $29/month | Up to 10 | Unlimited | Priority, 48h |
+| **Business** | $79/month | Unlimited | Unlimited | 24h + invoice |
+
+All tiers include no attribution requirement, access to all updates while subscribed, and cancel anytime.
+
+→ [Full commercial license details](COMMERCIAL.md)
 
 ---
 
