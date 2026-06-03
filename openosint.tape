@@ -1,45 +1,42 @@
-# openosint.tape — OpenOSINT v2.14.0 cinematic demo
+# openosint.tape — reproducible terminal demo (~19s, loops cleanly)
 # Run: vhs openosint.tape
 
 Output assets/demo.gif
 
 Set Shell "bash"
-Set FontSize 16
-Set FontFamily "JetBrains Mono, Courier New"
-Set Width 1920
-Set Height 1080
-Set Theme "Dracula"
+Set FontSize 26
+Set FontFamily "JetBrains Mono"
+Set Width 1200
+Set Height 700
+Set Theme "Catppuccin Mocha"
 Set Padding 24
-Set TypingSpeed 55ms
-Set PlaybackSpeed 0.85
+Set TypingSpeed 60ms
 
-# Pre-wire the alias so `openosint` launches the demo driver (not recorded).
+# --- hidden setup: clean prompt, fixture-backed alias ---
 Hide
-Type "alias openosint='python3 openosint_demo.py'"
+Type "export PS1='$ '"
 Enter
+Sleep 150ms
+Type "alias openosint='./scripts/openosint_vhs_demo.sh'"
+Enter
+Sleep 150ms
 Show
+# --------------------------------------------------------
 
-# ----------------------------------------------------------------
-# Scene 1 — Interactive REPL startup
-# ----------------------------------------------------------------
+Sleep 1000ms
 
-Type "openosint"
+# Scene 1 — username scan across 300+ platforms
+Type "openosint username johndoe99"
 Enter
-Sleep 1800ms
+Sleep 4200ms
 
-# ----------------------------------------------------------------
-# Scene 2 — Natural language REPL investigation
-# ----------------------------------------------------------------
-
-Type "investigate target@example.com"
+# Scene 2 — email account enumeration
+Type "openosint email target@example.com"
 Enter
-Sleep 9000ms
+Sleep 3500ms
 
-# ----------------------------------------------------------------
-# Scene 3 — New tools showcase (ip2location + abuseipdb)
-# ----------------------------------------------------------------
-
-Type "check 198.51.100.1 for abuse and location"
+# Scene 3 — MCP integration (shown as comment so nothing executes)
+Type "# claude mcp add openosint -- python3 -m openosint.mcp_server"
 Enter
-Sleep 5000ms
+
 Sleep 2500ms

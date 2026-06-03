@@ -24,7 +24,7 @@ mcp-name: io.github.OpenOSINT/openosint
 </div>
 
 <div align="center">
-  <img src="assets/demo.gif" alt="OpenOSINT demo" width="700" />
+  <img src="assets/demo.gif" alt="OpenOSINT terminal demo" width="900" />
 </div>
 
 > **Legal Disclaimer**: OpenOSINT is intended for **legal and authorized use only**.
@@ -420,8 +420,17 @@ openosint web
 ```
 
 <div align="center">
-  <strong>Web UI</strong> — launch with <code>openosint web</code><br/>
-  <img src="assets/web-demo.gif" alt="OpenOSINT web UI demo" width="700" />
+  <strong>Web UI</strong> — launch with <code>openosint web</code>
+</div>
+
+---
+
+### Live Documentation
+
+The interactive documentation at [openosint.tech](https://openosint.tech/) covers every tool, CLI flag, and configuration option.
+
+<div align="center">
+  <img src="assets/demo-web.gif" alt="openosint.tech documentation tour" width="900" />
 </div>
 
 ### MCP Server
