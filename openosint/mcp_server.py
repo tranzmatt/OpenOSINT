@@ -1,13 +1,13 @@
 # openosint/mcp_server.py
 """
-OpenOSINT MCP Server — v2.18.1
+OpenOSINT MCP Server — v2.20.0
 
-Exposes all 16 OSINT tool capabilities plus multi-target investigation
+Exposes all 18 OSINT tool capabilities plus multi-target investigation
 to MCP-compliant AI clients over standard I/O. Tools include:
 search_email, search_username, search_breach, search_whois, search_ip,
 search_domain, generate_dorks, search_paste, search_phone, search_shodan,
 search_virustotal, search_censys, search_ip2location, search_abuseipdb,
-search_github, search_dns.
+search_github, search_dns, search_dorks_live, scrape_url.
 """
 
 from __future__ import annotations
@@ -22,11 +22,13 @@ from mcp.types import CallToolResult, TextContent, Tool
 
 from openosint.json_output import to_json
 from openosint.tools.generate_dorks import run_dork_osint
+from openosint.tools.scrape_url import run_scrape_url_osint
 from openosint.tools.search_abuseipdb import run_abuseipdb_osint
 from openosint.tools.search_breach import run_breach_osint
 from openosint.tools.search_censys import run_censys_osint
 from openosint.tools.search_dns import run_dns_osint
 from openosint.tools.search_domain import run_domain_osint
+from openosint.tools.search_dorks_live import run_dorks_live_osint
 from openosint.tools.search_email import run_email_osint
 from openosint.tools.search_github import run_github_osint
 from openosint.tools.search_ip import run_ip_osint
@@ -256,6 +258,37 @@ async def list_tools() -> list[Tool]:
             ),
         ),
         Tool(
+            name="search_dorks_live",
+            description=(
+                "Execute Google dork queries for a target via the Bright Data SERP API, "
+                "returning live structured results (title, URL, snippet). "
+                "Runs up to 5 dorks by default — each is a billable API call. "
+                "Requires BRIGHTDATA_API_KEY and BRIGHTDATA_SERP_ZONE env vars."
+            ),
+            inputSchema=_with_json(
+                {
+                    "type": "object",
+                    "properties": {"target": {"type": "string"}},
+                    "required": ["target"],
+                }
+            ),
+        ),
+        Tool(
+            name="scrape_url",
+            description=(
+                "Fetch any public URL through the Bright Data Web Unlocker API, bypassing "
+                "Cloudflare, CAPTCHA, and bot-protection. Returns the page as clean Markdown. "
+                "Requires BRIGHTDATA_API_KEY and BRIGHTDATA_UNLOCKER_ZONE env vars."
+            ),
+            inputSchema=_with_json(
+                {
+                    "type": "object",
+                    "properties": {"url": {"type": "string"}},
+                    "required": ["url"],
+                }
+            ),
+        ),
+        Tool(
             name="investigate_multi",
             description=(
                 "Investigate multiple targets in parallel using the full OSINT tool chain. "
@@ -336,6 +369,14 @@ _HANDLERS: dict[str, tuple] = {
     "search_dns": (
         lambda a: run_dns_osint(a["domain"], timeout_seconds=10),
         lambda a: a["domain"],
+    ),
+    "search_dorks_live": (
+        lambda a: run_dorks_live_osint(a["target"], timeout_seconds=30),
+        lambda a: a["target"],
+    ),
+    "scrape_url": (
+        lambda a: run_scrape_url_osint(a["url"], timeout_seconds=60),
+        lambda a: a["url"],
     ),
 }
 

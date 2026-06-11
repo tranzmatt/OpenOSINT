@@ -40,9 +40,11 @@ from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
 from openosint.tools.generate_dorks import run_dork_osint
+from openosint.tools.scrape_url import run_scrape_url_osint
 from openosint.tools.search_breach import run_breach_osint
 from openosint.tools.search_censys import run_censys_osint
 from openosint.tools.search_domain import run_domain_osint
+from openosint.tools.search_dorks_live import run_dorks_live_osint
 from openosint.tools.search_email import run_email_osint
 from openosint.tools.search_ip import run_ip_osint
 from openosint.tools.search_ip2location import run_ip2location_osint
@@ -207,6 +209,40 @@ _TOOL_CATALOG: list[dict] = [
         "requires_env": ["VIRUSTOTAL_API_KEY"],
         "env_hints": {"VIRUSTOTAL_API_KEY": "virustotal.com/gui/my-apikey"},
     },
+    {
+        "name": "search_dorks_live",
+        "description": (
+            "Execute live Google dork searches via Bright Data SERP API. "
+            "Returns structured results (title, URL, snippet) for each dork query."
+        ),
+        "input_label": "Target (name, email, username, domain)",
+        "input_placeholder": "john doe",
+        "category": "Recon",
+        "icon": "🔎",
+        "requires_binary": [],
+        "requires_env": ["BRIGHTDATA_API_KEY", "BRIGHTDATA_SERP_ZONE"],
+        "env_hints": {
+            "BRIGHTDATA_API_KEY": "get.brightdata.com/984ni58s2oad",
+            "BRIGHTDATA_SERP_ZONE": "Your Bright Data SERP zone name",
+        },
+    },
+    {
+        "name": "scrape_url",
+        "description": (
+            "Fetch any public URL via Bright Data Web Unlocker, bypassing Cloudflare/CAPTCHA. "
+            "Returns clean Markdown."
+        ),
+        "input_label": "URL to fetch",
+        "input_placeholder": "https://example.com",
+        "category": "Recon",
+        "icon": "🌍",
+        "requires_binary": [],
+        "requires_env": ["BRIGHTDATA_API_KEY", "BRIGHTDATA_UNLOCKER_ZONE"],
+        "env_hints": {
+            "BRIGHTDATA_API_KEY": "get.brightdata.com/984ni58s2oad",
+            "BRIGHTDATA_UNLOCKER_ZONE": "Your Bright Data Web Unlocker zone name",
+        },
+    },
 ]
 
 # Map tool name → async callable(input_value: str, timeout: int) -> str
@@ -224,6 +260,8 @@ _RUNNERS: dict[str, object] = {
     "search_shodan": lambda v, t: run_shodan_osint(v, timeout_seconds=t),
     "search_virustotal": lambda v, t: run_virustotal_osint(v, timeout_seconds=t),
     "search_censys": lambda v, t: run_censys_osint(v, timeout_seconds=t),
+    "search_dorks_live": lambda v, t: run_dorks_live_osint(v, timeout_seconds=t),
+    "scrape_url": lambda v, t: run_scrape_url_osint(v, timeout_seconds=t),
 }
 
 # Claude tool schemas (one string "input" param per tool)
@@ -269,6 +307,9 @@ _KNOWN_ENV_KEYS = [
     "CENSYS_SECRET",
     "SHODAN_API_KEY",
     "VIRUSTOTAL_API_KEY",
+    "BRIGHTDATA_API_KEY",
+    "BRIGHTDATA_SERP_ZONE",
+    "BRIGHTDATA_UNLOCKER_ZONE",
 ]
 
 

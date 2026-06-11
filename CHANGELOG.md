@@ -7,6 +7,18 @@ OpenOSINT adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [2.20.0] — 2026-06-11
+
+### Added
+- **Bright Data integration** — two new optional tools backed by the [Bright Data](https://get.brightdata.com/984ni58s2oad) API. Both tools require `BRIGHTDATA_API_KEY` and gracefully degrade (descriptive error string, no exception) when the key is absent. Free tier: 5,000 requests/month.
+  - `search_dorks_live` — executes the same Google dork templates as `generate_dorks` through the Bright Data SERP API, returning structured results (title, URL, snippet) for each query. Runs up to 5 dorks by default; each is a separate billable call. `generate_dorks` is unchanged and remains fully offline.
+  - `scrape_url` — fetches any public URL through the Bright Data Web Unlocker API (bypasses Cloudflare/CAPTCHA) and returns clean Markdown via the API's native `data_format: "markdown"` conversion. A general primitive the AI agent can chain after other tools.
+- Both tools are wired into all four interfaces: **REPL** (agent tool-use), **CLI** (`openosint search-dorks-live <target>`, `openosint scrape <url>`), **MCP server** (`search_dorks_live`, `scrape_url` tools), and **Web UI** (tool catalog with availability indicator).
+- New env vars: `BRIGHTDATA_API_KEY`, `BRIGHTDATA_SERP_ZONE`, `BRIGHTDATA_UNLOCKER_ZONE` — added to `.env.example` and README Configuration table.
+- Unit tests (`tests/test_brightdata.py`): success, failure, and missing-key cases for both tools, all HTTP calls mocked.
+
+---
+
 ## [2.19.1] — 2026-06-09
 
 ### Fixed

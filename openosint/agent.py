@@ -25,11 +25,13 @@ from typing import Any
 import anthropic
 
 from openosint.tools.generate_dorks import run_dork_osint
+from openosint.tools.scrape_url import run_scrape_url_osint
 from openosint.tools.search_abuseipdb import run_abuseipdb_osint
 from openosint.tools.search_breach import run_breach_osint
 from openosint.tools.search_censys import run_censys_osint
 from openosint.tools.search_dns import run_dns_osint
 from openosint.tools.search_domain import run_domain_osint
+from openosint.tools.search_dorks_live import run_dorks_live_osint
 from openosint.tools.search_email import run_email_osint
 from openosint.tools.search_github import run_github_osint
 from openosint.tools.search_ip import run_ip_osint
@@ -306,6 +308,46 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "required": ["domain"],
         },
     },
+    {
+        "name": "search_dorks_live",
+        "description": (
+            "Execute Google dork queries for a target via the Bright Data SERP API, "
+            "returning live structured results (title, URL, snippet). "
+            "Use after generate_dorks when you need actual search results, not just URLs. "
+            "Runs up to 5 dorks by default — each is a billable API call. "
+            "Requires BRIGHTDATA_API_KEY and BRIGHTDATA_SERP_ZONE."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "target": {
+                    "type": "string",
+                    "description": "Any target: name, email, username, or domain.",
+                }
+            },
+            "required": ["target"],
+        },
+    },
+    {
+        "name": "scrape_url",
+        "description": (
+            "Fetch any public URL through the Bright Data Web Unlocker API, bypassing "
+            "Cloudflare, CAPTCHA, and other bot-protection. Returns the page as clean "
+            "Markdown. Use to retrieve content from URLs discovered by other tools when "
+            "direct access is blocked. "
+            "Requires BRIGHTDATA_API_KEY and BRIGHTDATA_UNLOCKER_ZONE."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "description": "Full URL to fetch (must start with http:// or https://).",
+                }
+            },
+            "required": ["url"],
+        },
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -329,6 +371,8 @@ _TOOL_MAP: dict[str, Any] = {
     "search_abuseipdb": lambda a: run_abuseipdb_osint(a["ip"], timeout_seconds=30),
     "search_github": lambda a: run_github_osint(a["query"], timeout_seconds=30),
     "search_dns": lambda a: run_dns_osint(a["domain"], timeout_seconds=10),
+    "search_dorks_live": lambda a: run_dorks_live_osint(a["target"], timeout_seconds=30),
+    "scrape_url": lambda a: run_scrape_url_osint(a["url"], timeout_seconds=60),
 }
 
 SYSTEM_PROMPT = """You are OpenOSINT, an expert OSINT analyst assistant running in a terminal.
@@ -343,6 +387,8 @@ INVESTIGATION STRATEGY:
 - For IP reputation/abuse: use search_abuseipdb to get the abuseConfidenceScore — a score above 50% indicates a high-risk IP; combine with search_ip or search_shodan for full context.
 - For a domain or IP infrastructure: use search_censys for certificate history and port data.
 - For a Shodan query or banners: use search_shodan.
+- For live Google search results on a target: use search_dorks_live (requires BRIGHTDATA_API_KEY).
+- To fetch a URL that blocks direct access (Cloudflare/CAPTCHA): use scrape_url (requires BRIGHTDATA_API_KEY).
 - Chain tools intelligently: use findings from each step to decide the next.
 - Never run search_email or search_breach with a full name — only with actual email addresses.
 - Never run search_username with spaces in the name.

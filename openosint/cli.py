@@ -32,10 +32,12 @@ import os  # noqa: E402
 import sys  # noqa: E402
 
 from openosint.json_output import format_tool_result  # noqa: E402
+from openosint.tools.scrape_url import run_scrape_url_osint  # noqa: E402
 from openosint.tools.search_abuseipdb import run_abuseipdb_osint  # noqa: E402
 from openosint.tools.search_breach import run_breach_osint  # noqa: E402
 from openosint.tools.search_censys import run_censys_osint  # noqa: E402
 from openosint.tools.search_dns import run_dns_osint  # noqa: E402
+from openosint.tools.search_dorks_live import run_dorks_live_osint  # noqa: E402
 from openosint.tools.search_email import run_email_osint  # noqa: E402
 from openosint.tools.search_github import run_github_osint  # noqa: E402
 from openosint.tools.search_ip2location import run_ip2location_osint  # noqa: E402
@@ -373,6 +375,60 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Request timeout (default: 30).",
     )
 
+    # search-dorks-live
+    dorks_live_cmd = subparsers.add_parser(
+        "search-dorks-live",
+        help=(
+            "Execute live Google dork searches via Bright Data SERP API (no AI). "
+            "Requires BRIGHTDATA_API_KEY and BRIGHTDATA_SERP_ZONE."
+        ),
+    )
+    dorks_live_cmd.add_argument(
+        "target",
+        type=str,
+        metavar="TARGET",
+        help="Any target: name, email, username, or domain.",
+    )
+    dorks_live_cmd.add_argument(
+        "--max-dorks",
+        type=int,
+        default=5,
+        metavar="N",
+        dest="max_dorks",
+        help="Number of dork queries to run (default: 5, max: 12).",
+    )
+    dorks_live_cmd.add_argument(
+        "-t",
+        "--timeout",
+        type=int,
+        default=30,
+        metavar="SECONDS",
+        help="Per-request timeout (default: 30).",
+    )
+
+    # scrape
+    scrape_cmd = subparsers.add_parser(
+        "scrape",
+        help=(
+            "Fetch a URL via Bright Data Web Unlocker and return clean Markdown (no AI). "
+            "Bypasses Cloudflare/CAPTCHA. Requires BRIGHTDATA_API_KEY and BRIGHTDATA_UNLOCKER_ZONE."
+        ),
+    )
+    scrape_cmd.add_argument(
+        "url",
+        type=str,
+        metavar="URL",
+        help="Full URL to fetch (must start with http:// or https://).",
+    )
+    scrape_cmd.add_argument(
+        "-t",
+        "--timeout",
+        type=int,
+        default=60,
+        metavar="SECONDS",
+        help="Request timeout (default: 60).",
+    )
+
     # multi
     multi_cmd = subparsers.add_parser(
         "multi",
@@ -625,6 +681,33 @@ async def _handle_ip2location(
         _print_result(result)
 
 
+async def _handle_dorks_live(
+    target: str,
+    max_dorks: int = 5,
+    timeout: int = 30,
+    json_output: bool = False,
+) -> None:
+    print(f"[*] Live dork search: {target}", file=sys.stderr)
+    result = await run_dorks_live_osint(target=target, max_dorks=max_dorks, timeout_seconds=timeout)
+    if json_output:
+        _emit_json(format_tool_result("search_dorks_live", target, result))
+    else:
+        _print_result(result)
+
+
+async def _handle_scrape(
+    url: str,
+    timeout: int = 60,
+    json_output: bool = False,
+) -> None:
+    print(f"[*] Web Unlocker scrape: {url}", file=sys.stderr)
+    result = await run_scrape_url_osint(url=url, timeout_seconds=timeout)
+    if json_output:
+        _emit_json(format_tool_result("scrape_url", url, result))
+    else:
+        _print_result(result)
+
+
 async def _handle_multi(
     targets_arg: str,
     api_key: str | None = None,
@@ -801,6 +884,15 @@ async def _async_main() -> None:
         await _handle_abuseipdb(args.ip, args.timeout, json_output=json_output)
     elif args.command == "ip2location":
         await _handle_ip2location(args.ip, args.timeout, json_output=json_output)
+    elif args.command == "search-dorks-live":
+        await _handle_dorks_live(
+            args.target,
+            max_dorks=getattr(args, "max_dorks", 5),
+            timeout=args.timeout,
+            json_output=json_output,
+        )
+    elif args.command == "scrape":
+        await _handle_scrape(args.url, timeout=args.timeout, json_output=json_output)
     elif args.command == "multi":
         await _handle_multi(
             args.targets, api_key=getattr(args, "api_key", None), is_pdf_disabled=is_pdf_disabled

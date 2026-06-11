@@ -102,6 +102,9 @@ Store all keys in a `.env` file at the project root (copy `.env.example`). `pyth
 | `CENSYS_API_ID` + `CENSYS_SECRET` | `search_censys` | Optional | Censys Search API — [get one](https://censys.io/account) |
 | `ABUSEIPDB_API_KEY` | `search_abuseipdb` | Optional | AbuseIPDB v2 — [get one](https://www.abuseipdb.com/account/api) |
 | `GITHUB_TOKEN` | `search_github` | Optional | GitHub API — raises rate limit from 60 to 5000 req/h — [get one](https://github.com/settings/tokens) |
+| `BRIGHTDATA_API_KEY` | `search_dorks_live`, `scrape_url` | Optional | Bright Data API key — [get one](https://get.brightdata.com/984ni58s2oad) (free tier: 5,000 req/month). *OpenOSINT earns a referral commission if you sign up through this link.* |
+| `BRIGHTDATA_SERP_ZONE` | `search_dorks_live` | Optional | Your Bright Data SERP API zone name (e.g. `serp_api1`). Create one in the [Bright Data dashboard](https://get.brightdata.com/984ni58s2oad). |
+| `BRIGHTDATA_UNLOCKER_ZONE` | `scrape_url` | Optional | Your Bright Data Web Unlocker zone name (e.g. `web_unlocker1`). Create one in the [Bright Data dashboard](https://get.brightdata.com/984ni58s2oad). |
 
 **Optional Python packages:**
 
@@ -133,6 +136,8 @@ Store all keys in a `.env` file at the project root (copy `.env.example`). `pyth
 | `search_abuseipdb` | AbuseIPDB v2 API | IP abuse reputation: confidence score, reports, country, ISP |
 | `search_github` | GitHub REST API | Profile, repos, commit-discovered emails, username/keyword search |
 | `search_dns` | dnspython (built-in) | A/AAAA/MX/NS/TXT/CNAME/SOA records; SPF, DMARC, DKIM analysis |
+| `search_dorks_live` | Bright Data SERP API | Live Google search results for dork queries (title, URL, snippet) |
+| `scrape_url` | Bright Data Web Unlocker | Fetch any URL bypassing Cloudflare/CAPTCHA — returns clean Markdown |
 
 ### search_email
 
@@ -360,6 +365,54 @@ Abuse intelligence for '198.51.100.1':
 ```
 
 The warning line only appears when `abuseConfidenceScore` exceeds 50%.
+
+### search_dorks_live
+
+Executes live Google dork queries for a target through the [Bright Data SERP API](https://get.brightdata.com/984ni58s2oad), returning structured results (title, URL, snippet) for each dork. Reuses the same templates as `generate_dorks` — the offline tool remains unchanged. Each dork is a separate billable API call; defaults to 5 dorks per run. Requires `BRIGHTDATA_API_KEY` and `BRIGHTDATA_SERP_ZONE`.
+
+*OpenOSINT earns a referral commission if you sign up through this link.*
+
+```bash
+openosint search-dorks-live "john doe"
+openosint search-dorks-live "target@example.com" --max-dorks 3
+openosint search-dorks-live example.com --max-dorks 5 -t 30
+```
+
+```text
+Bright Data live dork search for 'john doe' (5 queries):
+
+[+] Dork: "john doe"
+    Title:   John Doe — LinkedIn
+    URL:     https://www.linkedin.com/in/johndoe
+    Snippet: Software engineer with 10 years of experience...
+
+[+] Dork: "john doe" site:linkedin.com
+    Title:   John Doe | LinkedIn
+    URL:     https://www.linkedin.com/in/john-doe-12345
+    ...
+```
+
+### scrape_url
+
+Fetches any public URL through the [Bright Data Web Unlocker API](https://get.brightdata.com/984ni58s2oad), bypassing Cloudflare, CAPTCHA, and other bot-protection mechanisms. Returns clean Markdown using the API's native `data_format: "markdown"` conversion. A general primitive the AI agent can chain after discovering URLs with other tools. Requires `BRIGHTDATA_API_KEY` and `BRIGHTDATA_UNLOCKER_ZONE`.
+
+*OpenOSINT earns a referral commission if you sign up through this link.*
+
+```bash
+openosint scrape https://example.com
+openosint scrape https://protected-site.com -t 60
+```
+
+```text
+[Web Unlocker] URL: https://example.com
+[Web Unlocker] Remote status: 200
+
+# Example Domain
+
+This domain is for use in illustrative examples in documents.
+You may use this domain in literature without prior coordination or asking for permission.
+...
+```
 
 ## Interfaces
 
