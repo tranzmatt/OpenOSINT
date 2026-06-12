@@ -679,6 +679,30 @@ Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for
 |---|---|
 | [@consocio](https://github.com/consocio) | venv/uv-tool binary resolution fix — co-installed tools are now found without a separate activation step ([#6](https://github.com/OpenOSINT/OpenOSINT/pull/6)) |
 
+## SERVICES
+
+The framework is free and MIT-licensed. This is an optional paid setup service offered by the maintainer.
+
+**OSINT-MCP Setup Sprint** — done-for-you installation and configuration of an autonomous OSINT-MCP pipeline on your environment. Fully async, no calls required.
+
+**Includes:**
+- Pre-configured OpenOSINT setup tailored to your stack (Claude Code, Claude Desktop, or any MCP client)
+- API keys wired in (Shodan, VirusTotal, IP2Location, HaveIBeenPwned, and others as needed)
+- One investigation workflow built around your use case
+- Written step-by-step setup guide + screen-recorded walkthrough
+- 1-page runbook
+- Async email support for 7 days
+
+**Delivery:** 3–5 days, fully async.
+
+**For:** SOC analysts · threat-intel teams · fraud/AML · pentesters · OSINT investigators
+
+**Founding pricing** available for early teams — inquire.
+
+→ Email [openosint@yahoo.com](mailto:openosint@yahoo.com) · [LinkedIn](https://www.linkedin.com/company/openosintoss) · <!-- INTAKE_FORM_LINK -->
+
+*For authorized use only. See [DISCLAIMER.md](DISCLAIMER.md).*
+
 ## License
 
 OpenOSINT is open source under the [MIT License](./LICENSE) — free for personal, academic, and open source use.
