@@ -67,6 +67,12 @@ OpenOSINT is an AI agent for Open Source Intelligence with three interfaces: an 
 - **Session history** — all REPL sessions saved to `~/.openosint/history/`; browse with `openosint history`
 - **Web UI** — browser-based AI chat with streaming output, tool cards, and light/dark theme toggle
 
+## 🎯 Ready-made investigation prompts
+
+OpenOSINT gives you the engine. The **AI OSINT Prompt Pack** gives you 30+ tested prompts — email, username, domain, IP, phone, company due diligence, image clues, verification, and reporting — all built around the scope → collect → pivot → verify → document workflow, so the model collects and pivots against real sources instead of guessing.
+
+👉 **[Get the Prompt Pack ($19) →](https://tommasodev.gumroad.com/l/ai-osint-prompt-pack?utm_source=github_readme)**
+
 ## Installation
 
 ```bash
