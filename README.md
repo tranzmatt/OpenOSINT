@@ -679,6 +679,20 @@ Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for
 |---|---|
 | [@consocio](https://github.com/consocio) | venv/uv-tool binary resolution fix — co-installed tools are now found without a separate activation step ([#6](https://github.com/OpenOSINT/OpenOSINT/pull/6)) |
 
+## OpenOSINT Cloud
+
+**OpenOSINT Cloud** is the hosted API version — one call, one bill, no infra to manage. Billing via [Polar](https://polar.sh) (Merchant of Record, handles international VAT automatically). Deployed on Heroku.
+
+→ **[CLOUD.md](CLOUD.md)** — deploy & Polar setup guide
+
+**Legal:**
+[Terms of Service](https://openosint.tech/terms/) &nbsp;·&nbsp;
+[Privacy Policy](https://openosint.tech/privacy/) &nbsp;·&nbsp;
+[Acceptable Use Policy](https://openosint.tech/acceptable-use/) &nbsp;·&nbsp;
+[Sub-processors](https://openosint.tech/subprocessors/)
+
+---
+
 ## SERVICES
 
 The framework is free and MIT-licensed. This is an optional paid setup service offered by the maintainer.

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sub-processors — OpenOSINT Cloud</title>
+<meta name="description" content="OpenOSINT Cloud sub-processor list. Third-party services used to deliver the OpenOSINT Cloud API.">
+<link rel="canonical" href="https://openosint.tech/subprocessors/">
+<meta property="og:title" content="Sub-processors — OpenOSINT Cloud">
+<meta property="og:url" content="https://openosint.tech/subprocessors/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="OpenOSINT">
+<link rel="icon" type="image/svg+xml" href="../logo.svg">
+<link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Sub-processors — OpenOSINT Cloud",
+  "url": "https://openosint.tech/subprocessors/",
+  "isPartOf": { "@type": "WebSite", "url": "https://openosint.tech" }
+}
+</script>
+</head>
+<body>
+
+<div id="nav">
+<a href="/" style="color:#3fb950;font-weight:bold;">HOME</a>
+<a href="/blog/" style="color:#58a6ff;">BLOG</a>
+<a href="/tools/" style="color:#58a6ff;">TOOLS</a>
+<a href="https://github.com/OpenOSINT/OpenOSINT" target="_blank" rel="noopener">GITHUB</a>
+<span class="nav-sep">|</span><a href="/sponsors.html" class="nav-cta">&#10084; Sponsor</a>
+</div>
+
+<div id="content">
+
+<div id="masthead">
+<table width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td class="mhead-l">OPENOSINT CLOUD</td>
+<td class="mhead-c">Sub-processors</td>
+<td class="mhead-r">2026-06-13</td>
+</tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="intro">SUB-PROCESSORS</h2>
+<div class="indent">
+<p>OpenOSINT Cloud uses the following third-party sub-processors to deliver the Service. This list is referenced in our <a href="/privacy/">Privacy Policy</a> (&sect;5). Last updated: 2026-06-13.</p>
+<p>For BYOK (bring-your-own-key) data sources, the data providers are chosen by the customer and are not listed here; you are bound by your chosen provider&rsquo;s own terms.</p>
+</div>
+
+<h2 id="list">PROCESSOR LIST</h2>
+<div class="indent">
+<table>
+<tr>
+  <th>Sub-processor</th>
+  <th>Purpose</th>
+  <th>Location</th>
+  <th>Transfer mechanism</th>
+</tr>
+<tr>
+  <td><b>Polar</b></td>
+  <td>Payment processing / Merchant of Record. Handles billing, invoicing, and international VAT on behalf of the operator.</td>
+  <td>USA</td>
+  <td>Standard Contractual Clauses (SCCs)</td>
+</tr>
+<tr>
+  <td><b>Heroku (Salesforce)</b></td>
+  <td>Cloud hosting and infrastructure. The OpenOSINT Cloud API runs on Heroku dynos; Heroku Postgres stores account and usage data.</td>
+  <td>USA</td>
+  <td>Standard Contractual Clauses (SCCs)</td>
+</tr>
+<tr>
+  <td><b>IP2Location</b></td>
+  <td>OSINT data provider for IP geolocation, ISP, proxy detection, and threat intelligence lookups via the <code>search_ip2location</code> tool.</td>
+  <td>Malaysia / USA</td>
+  <td>Standard Contractual Clauses (SCCs)</td>
+</tr>
+</table>
+</div>
+
+<h2 id="byok">BYOK DATA SOURCES</h2>
+<div class="indent">
+<p>When you supply your own API keys (BYOK) to use additional data sources (e.g. Shodan, VirusTotal, HaveIBeenPwned, Censys, AbuseIPDB), those providers process your queries directly under your account and their own terms. OpenOSINT Cloud transmits your key to the provider only to fulfil the lookup you request; we do not store query results beyond the response window.</p>
+</div>
+
+<h2 id="changes">CHANGES</h2>
+<div class="indent">
+<p>We will update this page when sub-processors are added or removed. Material changes will also be communicated via the <a href="/privacy/">Privacy Policy</a> update mechanism. Contact <a href="mailto:openosint@yahoo.com">openosint@yahoo.com</a> with questions.</p>
+</div>
+
+<hr>
+<div id="footer">
+<table width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td class="mhead-l">OpenOSINT Cloud</td>
+<td class="mhead-c">Sub-processors</td>
+<td class="mhead-r">2026-06-13</td>
+</tr>
+</table>
+</div>
+
+<div style="margin-top:24px; padding-top:12px; border-top:1px solid #ccc; font-family:monospace; font-size:12px; text-align:center;">
+<a href="/">Home</a> &middot;
+<a href="/terms/">Terms of Service</a> &middot;
+<a href="/privacy/">Privacy Policy</a> &middot;
+<a href="/acceptable-use/">Acceptable Use</a> &middot;
+<a href="/blog/">Blog</a> &middot;
+<a href="https://github.com/OpenOSINT/OpenOSINT" target="_blank" rel="noopener">GitHub</a>
+</div>
+
+</div>
+</body>
+</html>

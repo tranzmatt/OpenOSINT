@@ -25,6 +25,35 @@
     <priority>0.8</priority>
   </url>
 
+  <!-- Legal pages -->
+  <url>
+    <loc>https://openosint.tech/terms/</loc>
+    <lastmod>2026-06-13</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <url>
+    <loc>https://openosint.tech/privacy/</loc>
+    <lastmod>2026-06-13</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <url>
+    <loc>https://openosint.tech/acceptable-use/</loc>
+    <lastmod>2026-06-13</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <url>
+    <loc>https://openosint.tech/subprocessors/</loc>
+    <lastmod>2026-06-13</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+
   <!-- Blog posts -->
   <url>
     <loc>https://openosint.tech/blog/what-is-osint.html</loc>
