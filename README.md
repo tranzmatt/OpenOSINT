@@ -52,6 +52,31 @@ mcp-name: io.github.OpenOSINT/openosint
 </tr>
 </table>
 
+## OpenOSINT Cloud — Hosted IP & Domain Intelligence API
+
+Hosted REST and MCP API for **IP and domain infrastructure intelligence** — geolocation, ISP/ASN, proxy/VPN/datacenter/Tor detection, IP abuse reputation, DNS records, and subdomain enumeration. No infra to manage. IP2Location server key included — no setup required.
+
+> **Privacy:** OpenOSINT Cloud does not search for personal data about individuals, does not use leaked or breached data sources, and does not perform people-search lookups. Scoped exclusively to IP addresses and domain names.
+
+**Quick start**
+
+```bash
+curl -s -X POST https://api.openosint.tech/v1/enrich \
+  -H "X-API-Key: YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"tool":"search_ip","target":"8.8.8.8"}'
+```
+
+| Plan | Type | Price | Credits |
+|------|------|-------|---------|
+| Pay-as-you-go | One-time | $10 | 100 calls |
+| Starter | Monthly | $19/mo | 1,000 calls/mo |
+| Pro | Monthly | $49/mo | 5,000 calls/mo |
+
+→ **[Get started →](https://buy.polar.sh/polar_cl_45nAq1h8jAxfrHXJNSFTXQ9jc5pk6mzOi4zSj4Dxypb)** &nbsp;·&nbsp; [Full docs & MCP setup →](https://openosint.tech/cloud/)
+
+---
+
 ## What is OpenOSINT?
 
 OpenOSINT is an AI agent for Open Source Intelligence with three interfaces: an interactive terminal REPL, a direct CLI, and an MCP server exposable to Claude Code, Claude Desktop, or any MCP-compatible client — plus a browser-based Web UI added in v2.12.0. The AI layer uses Anthropic's native tool use API (or a local Ollama model, or any OpenAI-compatible endpoint): the model issues hard stops when it needs a tool, your code executes the real binary, the actual output goes back — hallucination in tool results is structurally impossible.

@@ -22,14 +22,47 @@
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "name": "OpenOSINT Cloud",
-  "description": "Hosted REST and MCP API for IP and domain infrastructure intelligence — geolocation, ISP/ASN, proxy/VPN/Tor detection, IP abuse reputation, DNS records, and subdomain enumeration.",
+  "description": "Hosted REST and MCP API for IP and domain infrastructure intelligence — geolocation, ISP/ASN, proxy/VPN/Tor detection, IP abuse reputation, DNS records, and subdomain enumeration. IP2Location included.",
   "applicationCategory": "SecurityApplication",
+  "applicationSubCategory": ["IP Geolocation API", "Proxy Detection API", "Domain Intelligence API"],
   "offers": [
-    { "@type": "Offer", "name": "Pay-as-you-go", "price": "10.00", "priceCurrency": "USD" },
-    { "@type": "Offer", "name": "Starter", "price": "19.00", "priceCurrency": "USD" },
-    { "@type": "Offer", "name": "Pro", "price": "49.00", "priceCurrency": "USD" }
+    {
+      "@type": "Offer",
+      "name": "Pay-as-you-go",
+      "description": "100 API credits, no expiry",
+      "price": "10.00",
+      "priceCurrency": "USD",
+      "eligibleQuantity": { "@type": "QuantitativeValue", "value": 100, "unitText": "API calls" }
+    },
+    {
+      "@type": "Offer",
+      "name": "Starter",
+      "description": "1,000 API credits per month",
+      "price": "19.00",
+      "priceCurrency": "USD",
+      "priceSpecification": {
+        "@type": "UnitPriceSpecification",
+        "price": "19.00",
+        "priceCurrency": "USD",
+        "billingDuration": "P1M"
+      }
+    },
+    {
+      "@type": "Offer",
+      "name": "Pro",
+      "description": "5,000 API credits per month",
+      "price": "49.00",
+      "priceCurrency": "USD",
+      "priceSpecification": {
+        "@type": "UnitPriceSpecification",
+        "price": "49.00",
+        "priceCurrency": "USD",
+        "billingDuration": "P1M"
+      }
+    }
   ],
   "url": "https://openosint.tech/cloud/",
+  "sameAs": "https://github.com/OpenOSINT/OpenOSINT",
   "isPartOf": { "@type": "WebSite", "url": "https://openosint.tech" }
 }
 </script>
@@ -152,7 +185,23 @@
 <a href="https://buy.polar.sh/polar_cl_45nAq1h8jAxfrHXJNSFTXQ9jc5pk6mzOi4zSj4Dxypb" class="cta-btn" target="_blank" rel="noopener noreferrer">Get started &rarr;</a>
 </div>
 
-<h2 id="api">API</h2>
+<h2 id="quickstart">QUICK START</h2>
+<div class="indent">
+<p>After purchase you receive an API key. Make your first call in under a minute:</p>
+<pre>curl -s -X POST https://api.openosint.tech/v1/enrich \
+  -H "X-API-Key: YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"tool":"search_ip","target":"8.8.8.8"}'</pre>
+<pre>{
+  "tool": "search_ip",
+  "target": "8.8.8.8",
+  "results": ["[+] Hostname: dns.google", "[+] Org: AS15169 Google LLC", "[+] City: Mountain View"],
+  "credits_left": 99
+}</pre>
+<p>Swap <code>search_ip</code> for any of the five tools; swap the target accordingly (IP, domain, or subdomain). One call = one credit.</p>
+</div>
+
+<h2 id="api">API REFERENCE</h2>
 <div class="indent">
 <p>All requests require an <code>X-API-Key</code> header containing the license key issued on purchase.</p>
 
@@ -189,7 +238,53 @@ Content-Type: application/json
 
 <h2 id="mcp">MCP SERVER</h2>
 <div class="indent">
-<p>The same five tools are available as an MCP server for Claude Desktop, Claude Code, and any MCP-compatible client &mdash; no extra infrastructure required. See <a href="https://github.com/OpenOSINT/OpenOSINT" target="_blank" rel="noopener">the repository</a> for MCP configuration.</p>
+<p>The same five tools are available as an MCP server for Claude Desktop, Claude Code, and any MCP-compatible client &mdash; no extra infrastructure required.</p>
+<p><b>Claude Code</b></p>
+<pre>claude mcp add openosint-cloud \
+  --env OPENOSINT_API_KEY=YOUR_KEY \
+  python /path/to/OpenOSINT/openosint/mcp_server.py</pre>
+<p><b>Claude Desktop</b> &mdash; add to <code>claude_desktop_config.json</code>:</p>
+<pre>{
+  "mcpServers": {
+    "openosint-cloud": {
+      "command": "python",
+      "args": ["/path/to/OpenOSINT/openosint/mcp_server.py"],
+      "env": { "OPENOSINT_API_KEY": "YOUR_KEY" }
+    }
+  }
+}</pre>
+<p>Once configured, Claude can call <code>search_ip</code>, <code>search_ip2location</code>, <code>search_abuseipdb</code>, <code>search_dns</code>, and <code>search_domain</code> directly from the chat interface.</p>
+</div>
+
+<h2 id="faq">FAQ</h2>
+<div class="indent">
+
+<p><b>What counts as one credit?</b><br>
+Each <code>POST /v1/enrich</code> call consumes one credit, regardless of which tool is invoked or how long it takes. Credits are never deducted for upstream API errors.</p>
+
+<p><b>Do unused credits roll over?</b><br>
+No. Monthly credits reset at the start of each billing cycle. The pay-as-you-go pack ($10 / 100 credits) does not expire.</p>
+
+<p><b>Which tools are included?</b><br>
+<code>search_ip</code>, <code>search_ip2location</code> (IP2Location key included &mdash; no setup required), <code>search_abuseipdb</code>, <code>search_dns</code>, and <code>search_domain</code>. Tools that require your own upstream key (e.g. <code>search_abuseipdb</code>) support BYOK via <code>POST /v1/keys</code>.</p>
+
+<p><b>Is there personal data in the responses?</b><br>
+No. The API is scoped to IP addresses and domain names only. It does not search for, store, or return personal data about individuals, and does not use leaked or breached data sources.</p>
+
+<p><b>Can I cancel a subscription?</b><br>
+Yes, at any time via the Polar billing portal. Your key remains active until the end of the current billing period.</p>
+
+<p><b>I need more than 5,000 calls/month.</b><br>
+<a href="mailto:openosint@yahoo.com">Contact us</a> for a custom volume quote.</p>
+
+</div>
+
+<h2 id="trust">BUILT ON OPEN SOURCE</h2>
+<div class="indent">
+<div class="notice">
+OpenOSINT Cloud is built on the <a href="https://github.com/OpenOSINT/OpenOSINT" target="_blank" rel="noopener">open-source OpenOSINT framework</a> (~600 GitHub stars). The same tool logic that powers the CLI and MCP server runs in the cloud. You can inspect, self-host, or extend any part of it.
+</div>
+<a href="https://buy.polar.sh/polar_cl_45nAq1h8jAxfrHXJNSFTXQ9jc5pk6mzOi4zSj4Dxypb" class="cta-btn" target="_blank" rel="noopener noreferrer">Get started &rarr;</a>
 </div>
 
 <h2 id="legal">LEGAL</h2>
