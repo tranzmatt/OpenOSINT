@@ -21,6 +21,10 @@ mcp-name: io.github.OpenOSINT/openosint
 [![GitHub Stars](https://img.shields.io/github/stars/OpenOSINT/OpenOSINT?style=flat-square)](https://github.com/OpenOSINT/OpenOSINT/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/OpenOSINT/OpenOSINT?style=flat-square)](https://github.com/OpenOSINT/OpenOSINT/network/members)
 [![Sponsored by IP2Location](https://img.shields.io/badge/sponsored%20by-IP2Location.io-FF6B35?style=flat-square)](https://www.ip2location.io)
+[![Backers](https://opencollective.com/openosint_oss/backers/badge.svg)](https://opencollective.com/openosint_oss)
+[![Sponsors](https://opencollective.com/openosint_oss/sponsors/badge.svg)](https://opencollective.com/openosint_oss)
+
+<a href="https://opencollective.com/openosint_oss"><img src="https://opencollective.com/openosint_oss/donate/button@2x.png?color=blue" alt="Donate to OpenOSINT on Open Collective" width="200" /></a>
 
 </div>
 
