@@ -138,7 +138,58 @@ No network calls are made.  The tests run against the in-memory backend.
 
 ---
 
-## 6. Syntax / import check
+## 6. MCP server endpoint
+
+The gateway exposes a hosted MCP server at `/mcp` using the Streamable HTTP transport (MCP SDK ≥ 1.0.0).  Connect any MCP-compatible client — Claude Desktop, Claude Code, or a custom agent — directly to the hosted API without running any local server.
+
+### Connection URL
+
+```
+https://your-app.herokuapp.com/mcp
+```
+
+### Authentication
+
+Pass your OpenOSINT Cloud license key as an **`Authorization: Bearer`** header.  In `claude_desktop_config.json` or equivalent:
+
+```json
+{
+  "mcpServers": {
+    "openosint-cloud": {
+      "url": "https://your-app.herokuapp.com/mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_LICENSE_KEY"
+      }
+    }
+  }
+}
+```
+
+### Available MCP tools (5)
+
+The same 5 infrastructure tools as `/v1/enrich`:
+
+| MCP tool | What it returns | Key source |
+|---|---|---|
+| `search_ip` | Geolocation, ISP, ASN, hostname (ipinfo.io) | customer BYOK — `ipinfo` |
+| `search_ip2location` | Proxy/VPN/Tor/datacenter, threat score (IP2Location.io) | server — included |
+| `search_abuseipdb` | Abuse confidence score, reports, ISP (AbuseIPDB) | customer BYOK — `abuseipdb` |
+| `search_dns` | A, AAAA, MX, NS, TXT, CNAME, SOA records | none |
+| `search_domain` | Subdomain enumeration (passive DNS) | none |
+
+Each tool takes one string parameter `target` (an IP address or domain name).  BYOK tools require the corresponding key to be stored first via `POST /v1/keys`; a missing key returns a structured error string, not a protocol error.
+
+### Credit metering
+
+1 credit is deducted on success — same rule as the REST endpoint.  Upstream errors (`Scan error:...`) are **not** charged.
+
+### Listing on Smithery / Glama / mcp.so
+
+Point the registry at `https://your-app.herokuapp.com/mcp`.  The server's capability advertisement (tool list, descriptions) is returned via the standard `initialize` → `tools/list` MCP exchange; no separate manifest URL is needed.
+
+---
+
+## 7. Syntax / import check
 
 ```bash
 python -m py_compile cloud/main.py cloud/db.py cloud/polar.py cloud/tools.py \
@@ -149,7 +200,7 @@ python -m py_compile cloud/main.py cloud/db.py cloud/polar.py cloud/tools.py \
 
 ---
 
-## 7. curl examples
+## 8. curl examples
 
 ### Check your balance
 
@@ -195,7 +246,7 @@ curl -s "https://your-app.herokuapp.com/v1/checkout?plan=starter" | jq .
 
 ---
 
-## 8. Polar event names wired (verify before going live)
+## 9. Polar event names wired (verify before going live)
 
 | Event string          | Handler action                                 |
 |-----------------------|------------------------------------------------|
@@ -209,7 +260,7 @@ curl -s "https://your-app.herokuapp.com/v1/checkout?plan=starter" | jq .
 
 ---
 
-## 9. Environment variable reference
+## 10. Environment variable reference
 
 | Variable | Required | Purpose |
 |---|---|---|
@@ -225,7 +276,7 @@ curl -s "https://your-app.herokuapp.com/v1/checkout?plan=starter" | jq .
 
 ---
 
-## 10. v1 synchronous tool allow-list
+## 11. v1 synchronous tool allow-list
 
 IP and domain infrastructure intelligence only.
 
@@ -248,7 +299,7 @@ All tool calls are wrapped in a 25 s `asyncio.wait_for` (Heroku 30 s H12 limit -
 
 ---
 
-## 11. BYOK key management
+## 12. BYOK key management
 
 Customers store their own upstream API keys once; every `POST /v1/enrich` call resolves them automatically.  Keys are encrypted at rest with Fernet (`CONFIG_ENCRYPTION_KEY`).
 

@@ -16,6 +16,7 @@ from fastapi import FastAPI
 from cloud import db, keys
 from cloud.routes import checkout, enrich, usage, webhook
 from cloud.routes import keys as keys_route
+from cloud.routes.mcp_gateway import create_mcp_asgi_app
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(name)s: %(message)s")
 
@@ -43,6 +44,7 @@ def create_app() -> FastAPI:
     app.include_router(checkout.router,    prefix="/v1")
     app.include_router(webhook.router,     prefix="/v1")
     app.include_router(keys_route.router,  prefix="/v1")
+    app.mount("/mcp", create_mcp_asgi_app())
     return app
 
 

@@ -58,13 +58,26 @@ Hosted REST and MCP API for **IP and domain infrastructure intelligence** — ge
 
 > **Privacy:** OpenOSINT Cloud does not search for personal data about individuals, does not use leaked or breached data sources, and does not perform people-search lookups. Scoped exclusively to IP addresses and domain names.
 
-**Quick start**
+**REST quick start**
 
 ```bash
 curl -s -X POST https://api.openosint.tech/v1/enrich \
   -H "X-API-Key: YOUR_KEY" \
   -H "Content-Type: application/json" \
   -d '{"tool":"search_ip","target":"8.8.8.8"}'
+```
+
+**MCP quick start** — add to `claude_desktop_config.json` (or any MCP client):
+
+```json
+{
+  "mcpServers": {
+    "openosint-cloud": {
+      "url": "https://api.openosint.tech/mcp",
+      "headers": { "Authorization": "Bearer YOUR_KEY" }
+    }
+  }
+}
 ```
 
 | Plan | Type | Price | Credits |
