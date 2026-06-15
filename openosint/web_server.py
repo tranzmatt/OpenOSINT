@@ -54,8 +54,8 @@ from openosint.tools.search_shodan import run_shodan_osint
 from openosint.tools.search_username import run_username_osint
 from openosint.tools.search_virustotal import run_virustotal_osint
 from openosint.tools.search_whois import run_whois_osint
-
-_VERSION = "2.22.0"
+from openosint import __version__ as _VERSION
+from openosint.regexes import EMAIL_FIND_RE
 _ROOT = Path(__file__).parent.parent
 
 # Web assets: prefer the package-relative path (pip install) with project-root fallback (dev/editable)
@@ -826,7 +826,7 @@ async def _demo_chat_stream(message: str) -> AsyncIterator[dict]:
         return
 
     # --- email investigation ---
-    email_match = re.search(r"[\w.+-]+@[\w-]+\.[a-z]{2,}", message)
+    email_match = EMAIL_FIND_RE.search(message)
     if email_match or any(kw in msg_lower for kw in ("email", "investigate", "@")):
         email = email_match.group(0) if email_match else "demo@example.com"
         async for event in stream_text(f"Investigating **{email}**...\n\n"):
