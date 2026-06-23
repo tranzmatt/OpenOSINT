@@ -202,8 +202,8 @@ class TestPlaybookRunner:
             )
 
         content = report_path.read_text(encoding="utf-8")
-        # _DOMAIN_OUTPUT: 4 subs + _WHOIS/_DNS both emit ns1/ns2 (deduplicated) = 6 unique domains
-        assert "Subdomains / domains found:** 6" in content, content
+        # search_domain step: 4 subdomains only (WHOIS nameservers excluded)
+        assert "Subdomains of target:** 4" in content, content
         # _DNS_OUTPUT: 3 IPs on the A line → 3 IP entities
         assert "IP addresses found:** 3" in content, content
         # _WHOIS_OUTPUT: 2 emails → 2 EMAIL entities
