@@ -147,6 +147,7 @@ def _check_rate_limit(ip: str) -> bool:
 # ---------------------------------------------------------------------------
 
 _TOOL_CATALOG: list[dict] = [
+    # ---- Identity ----
     {
         "name": "search_email",
         "description": "Enumerate accounts linked to an email via holehe.",
@@ -154,6 +155,7 @@ _TOOL_CATALOG: list[dict] = [
         "input_placeholder": "target@example.com",
         "category": "Identity",
         "icon": "📧",
+        "tool_type": "B",
         "requires_binary": ["holehe"],
         "requires_env": [],
         "binary_hints": {"holehe": "pip install holehe"},
@@ -165,6 +167,7 @@ _TOOL_CATALOG: list[dict] = [
         "input_placeholder": "johndoe99",
         "category": "Identity",
         "icon": "👤",
+        "tool_type": "B",
         "requires_binary": ["sherlock"],
         "requires_env": [],
         "binary_hints": {"sherlock": "pip install sherlock-project"},
@@ -176,10 +179,12 @@ _TOOL_CATALOG: list[dict] = [
         "input_placeholder": "target@example.com",
         "category": "Identity",
         "icon": "🔓",
+        "tool_type": "A",
         "requires_binary": [],
         "requires_env": ["HIBP_API_KEY"],
         "env_hints": {"HIBP_API_KEY": "haveibeenpwned.com/API/Key"},
     },
+    # ---- Network ----
     {
         "name": "search_ip",
         "description": "Retrieve geolocation and ASN data for an IP address via ipinfo.io.",
@@ -187,6 +192,7 @@ _TOOL_CATALOG: list[dict] = [
         "input_placeholder": "8.8.8.8",
         "category": "Network",
         "icon": "🌐",
+        "tool_type": "A",
         "requires_binary": [],
         "requires_env": [],
     },
@@ -197,6 +203,7 @@ _TOOL_CATALOG: list[dict] = [
         "input_placeholder": "example.com",
         "category": "Network",
         "icon": "🔍",
+        "tool_type": "A",
         "requires_binary": [],
         "requires_env": [],
     },
@@ -207,6 +214,7 @@ _TOOL_CATALOG: list[dict] = [
         "input_placeholder": "example.com",
         "category": "Network",
         "icon": "🗺️",
+        "tool_type": "B",
         "requires_binary": ["sublist3r"],
         "requires_env": [],
         "binary_hints": {"sublist3r": "pip install sublist3r"},
@@ -218,10 +226,35 @@ _TOOL_CATALOG: list[dict] = [
         "input_placeholder": "8.8.8.8",
         "category": "Network",
         "icon": "📍",
+        "tool_type": "A",
         "requires_binary": [],
         "requires_env": ["IP2LOCATION_API_KEY"],
         "env_hints": {"IP2LOCATION_API_KEY": "ip2location.io/pricing"},
     },
+    {
+        "name": "search_dns",
+        "description": "Enumerate DNS records (A/MX/NS/TXT/DMARC/DKIM) and flag email security misconfigurations.",
+        "input_label": "Domain",
+        "input_placeholder": "example.com",
+        "category": "Network",
+        "icon": "🗄️",
+        "tool_type": "A",
+        "requires_binary": [],
+        "requires_env": [],
+    },
+    {
+        "name": "search_abuseipdb",
+        "description": "Check an IP against AbuseIPDB for abuse confidence score and report history.",
+        "input_label": "IP address",
+        "input_placeholder": "8.8.8.8",
+        "category": "Network",
+        "icon": "🚨",
+        "tool_type": "A",
+        "requires_binary": [],
+        "requires_env": ["ABUSEIPDB_API_KEY"],
+        "env_hints": {"ABUSEIPDB_API_KEY": "abuseipdb.com/account/api"},
+    },
+    # ---- Recon ----
     {
         "name": "generate_dorks",
         "description": "Generate targeted Google dork URLs for any target.",
@@ -229,6 +262,7 @@ _TOOL_CATALOG: list[dict] = [
         "input_placeholder": "john doe",
         "category": "Recon",
         "icon": "🔎",
+        "tool_type": "A",
         "requires_binary": [],
         "requires_env": [],
     },
@@ -239,6 +273,7 @@ _TOOL_CATALOG: list[dict] = [
         "input_placeholder": "target@example.com",
         "category": "Recon",
         "icon": "📋",
+        "tool_type": "A",
         "requires_binary": [],
         "requires_env": [],
     },
@@ -249,9 +284,22 @@ _TOOL_CATALOG: list[dict] = [
         "input_placeholder": "+14155552671",
         "category": "Recon",
         "icon": "📱",
+        "tool_type": "B",
         "requires_binary": ["phoneinfoga"],
         "requires_env": [],
         "binary_hints": {"phoneinfoga": "github.com/sundowndev/phoneinfoga/releases"},
+    },
+    {
+        "name": "search_github",
+        "description": "Search GitHub for a username, email, or keyword. Discovers profile, repos, and commit emails.",
+        "input_label": "Username, email, or keyword",
+        "input_placeholder": "johndoe99",
+        "category": "Recon",
+        "icon": "🐙",
+        "tool_type": "A",
+        "requires_binary": [],
+        "requires_env": [],
+        "env_hints": {"GITHUB_TOKEN": "github.com/settings/tokens (optional — raises rate limit)"},
     },
     {
         "name": "search_censys",
@@ -260,6 +308,7 @@ _TOOL_CATALOG: list[dict] = [
         "input_placeholder": "example.com",
         "category": "Recon",
         "icon": "🔭",
+        "tool_type": "A",
         "requires_binary": [],
         "requires_env": ["CENSYS_API_ID", "CENSYS_SECRET"],
         "env_hints": {
@@ -274,6 +323,7 @@ _TOOL_CATALOG: list[dict] = [
         "input_placeholder": "8.8.8.8",
         "category": "Recon",
         "icon": "🛡️",
+        "tool_type": "A",
         "requires_binary": [],
         "requires_env": ["SHODAN_API_KEY"],
         "env_hints": {"SHODAN_API_KEY": "account.shodan.io"},
@@ -285,6 +335,7 @@ _TOOL_CATALOG: list[dict] = [
         "input_placeholder": "8.8.8.8",
         "category": "Recon",
         "icon": "🦠",
+        "tool_type": "A",
         "requires_binary": [],
         "requires_env": ["VIRUSTOTAL_API_KEY"],
         "env_hints": {"VIRUSTOTAL_API_KEY": "virustotal.com/gui/my-apikey"},
@@ -299,6 +350,7 @@ _TOOL_CATALOG: list[dict] = [
         "input_placeholder": "john doe",
         "category": "Recon",
         "icon": "🔎",
+        "tool_type": "A",
         "requires_binary": [],
         "requires_env": ["BRIGHTDATA_API_KEY", "BRIGHTDATA_SERP_ZONE"],
         "env_hints": {
@@ -316,6 +368,7 @@ _TOOL_CATALOG: list[dict] = [
         "input_placeholder": "https://example.com",
         "category": "Recon",
         "icon": "🌍",
+        "tool_type": "A",
         "requires_binary": [],
         "requires_env": ["BRIGHTDATA_API_KEY", "BRIGHTDATA_UNLOCKER_ZONE"],
         "env_hints": {
@@ -334,6 +387,7 @@ _TOOL_CATALOG: list[dict] = [
         "input_placeholder": "john doe",
         "category": "Recon",
         "icon": "👣",
+        "tool_type": "A",
         "requires_binary": [],
         "requires_env": ["BRIGHTDATA_API_KEY", "BRIGHTDATA_SERP_ZONE"],
         "env_hints": {
@@ -343,24 +397,50 @@ _TOOL_CATALOG: list[dict] = [
     },
 ]
 
-# Map tool name → async callable(input_value: str, timeout: int) -> str
+# Map tool name → async callable(input_value: str, timeout: int, keys: dict) -> str
+# keys is always passed (may be {}); each lambda extracts only the key(s) it needs.
 _RUNNERS: dict[str, object] = {
-    "search_email": lambda v, t: run_email_osint(v, timeout_seconds=t),
-    "search_username": lambda v, t: run_username_osint(v, timeout_seconds=t),
-    "search_breach": lambda v, t: run_breach_osint(v, timeout_seconds=t),
-    "search_whois": lambda v, t: run_whois_osint(v, timeout_seconds=t),
-    "search_ip": lambda v, t: run_ip_osint(v, timeout_seconds=t),
-    "search_domain": lambda v, t: run_domain_osint(v, timeout_seconds=t),
-    "search_ip2location": lambda v, t: run_ip2location_osint(v, timeout_seconds=t),
-    "generate_dorks": lambda v, _t: run_dork_osint(v),
-    "search_paste": lambda v, t: run_paste_osint(v, timeout_seconds=t),
-    "search_phone": lambda v, t: run_phone_osint(v, timeout_seconds=t),
-    "search_shodan": lambda v, t: run_shodan_osint(v, timeout_seconds=t),
-    "search_virustotal": lambda v, t: run_virustotal_osint(v, timeout_seconds=t),
-    "search_censys": lambda v, t: run_censys_osint(v, timeout_seconds=t),
-    "search_dorks_live": lambda v, t: run_dorks_live_osint(v, timeout_seconds=t),
-    "scrape_url": lambda v, t: run_scrape_url_osint(v, timeout_seconds=t),
-    "search_footprint": lambda v, t: run_footprint_osint(v, timeout_seconds=t),
+    "search_email": lambda v, t, keys=None: run_email_osint(v, timeout_seconds=t),
+    "search_username": lambda v, t, keys=None: run_username_osint(v, timeout_seconds=t),
+    "search_breach": lambda v, t, keys=None: run_breach_osint(
+        v, timeout_seconds=t, api_key=(keys or {}).get("HIBP_API_KEY")
+    ),
+    "search_whois": lambda v, t, keys=None: run_whois_osint(v, timeout_seconds=t),
+    "search_ip": lambda v, t, keys=None: run_ip_osint(
+        v, timeout_seconds=t, api_key=(keys or {}).get("IPINFO_TOKEN")
+    ),
+    "search_domain": lambda v, t, keys=None: run_domain_osint(v, timeout_seconds=t),
+    "search_ip2location": lambda v, t, keys=None: run_ip2location_osint(
+        v, timeout_seconds=t, api_key=(keys or {}).get("IP2LOCATION_API_KEY")
+    ),
+    "search_dns": lambda v, t, keys=None: run_dns_osint(v, timeout_seconds=t),
+    "search_abuseipdb": lambda v, t, keys=None: run_abuseipdb_osint(
+        v, timeout_seconds=t, api_key=(keys or {}).get("ABUSEIPDB_API_KEY")
+    ),
+    "generate_dorks": lambda v, _t, keys=None: run_dork_osint(v),
+    "search_paste": lambda v, t, keys=None: run_paste_osint(v, timeout_seconds=t),
+    "search_phone": lambda v, t, keys=None: run_phone_osint(v, timeout_seconds=t),
+    "search_github": lambda v, t, keys=None: run_github_osint(
+        v, timeout_seconds=t, api_key=(keys or {}).get("GITHUB_TOKEN")
+    ),
+    "search_shodan": lambda v, t, keys=None: run_shodan_osint(
+        v, timeout_seconds=t, api_key=(keys or {}).get("SHODAN_API_KEY")
+    ),
+    "search_virustotal": lambda v, t, keys=None: run_virustotal_osint(
+        v, timeout_seconds=t, api_key=(keys or {}).get("VIRUSTOTAL_API_KEY")
+    ),
+    "search_censys": lambda v, t, keys=None: run_censys_osint(
+        v, timeout_seconds=t, api_keys=keys
+    ),
+    "search_dorks_live": lambda v, t, keys=None: run_dorks_live_osint(
+        v, timeout_seconds=t, api_keys=keys
+    ),
+    "scrape_url": lambda v, t, keys=None: run_scrape_url_osint(
+        v, timeout_seconds=t, api_keys=keys
+    ),
+    "search_footprint": lambda v, t, keys=None: run_footprint_osint(
+        v, timeout_seconds=t, api_keys=keys
+    ),
 }
 
 # Claude tool schemas (one string "input" param per tool)
@@ -406,6 +486,8 @@ _KNOWN_ENV_KEYS = [
     "CENSYS_SECRET",
     "SHODAN_API_KEY",
     "VIRUSTOTAL_API_KEY",
+    "ABUSEIPDB_API_KEY",
+    "GITHUB_TOKEN",
     "BRIGHTDATA_API_KEY",
     "BRIGHTDATA_SERP_ZONE",
     "BRIGHTDATA_UNLOCKER_ZONE",
@@ -473,6 +555,7 @@ async def _probe_openai_endpoint(base_url: str, api_key: str) -> dict:
 class RunRequest(BaseModel):
     input: str
     timeout: int = 120
+    api_keys: dict[str, str] | None = None  # per-request BYOK; never logged
 
 
 class ChatRequest(BaseModel):
@@ -1078,6 +1161,19 @@ def create_app() -> FastAPI:
                     "input_placeholder": meta["input_placeholder"],
                     "category": meta["category"],
                     "icon": meta.get("icon", ""),
+                    "tool_type": meta.get("tool_type", "A"),
+                    "required_keys": meta.get("requires_env", []),
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "input": {
+                                "type": "string",
+                                "description": meta["input_label"],
+                                "example": meta["input_placeholder"],
+                            }
+                        },
+                        "required": ["input"],
+                    },
                     "available": available,
                     "unavailable_reason": reason,
                 }
@@ -1103,7 +1199,7 @@ def create_app() -> FastAPI:
     # ------------------------------------------------------------------
 
     @app.post("/api/run/{tool_name}")
-    async def run_tool(tool_name: str, req: RunRequest):
+    async def run_tool(tool_name: str, req: RunRequest, request: Request):
         if tool_name not in _RUNNERS:
             return JSONResponse(
                 {
@@ -1114,9 +1210,51 @@ def create_app() -> FastAPI:
                 },
                 status_code=404,
             )
+
+        # Rate-limit keyless tools per real client IP
+        if tool_name in _KEYLESS_TOOLS:
+            client_ip = _get_client_ip(request)
+            if not _check_rate_limit(client_ip):
+                return JSONResponse(
+                    {
+                        "status": "error",
+                        "output": "Rate limit exceeded. Please wait before retrying.",
+                        "tool": tool_name,
+                        "elapsed": 0,
+                    },
+                    status_code=429,
+                )
+
+        # Check that ALL required keys are present (request body or env)
+        meta = next((m for m in _TOOL_CATALOG if m["name"] == tool_name), None)
+        if meta:
+            required_keys: list[str] = meta.get("requires_env", [])
+            supplied: dict[str, str] = req.api_keys or {}
+            missing = [
+                k for k in required_keys
+                if not supplied.get(k) and not os.environ.get(k, "").strip()
+            ]
+            if missing:
+                how_to_get = {k: meta.get("env_hints", {}).get(k, "") for k in missing}
+                return JSONResponse(
+                    {
+                        "status": "error",
+                        "key_required": True,
+                        "missing_keys": missing,
+                        "how_to_get": how_to_get,
+                        "tool": tool_name,
+                        "error": (
+                            "API key required — pass it in the api_keys field "
+                            "or set the corresponding environment variable"
+                        ),
+                        "elapsed": 0,
+                    }
+                )
+
+        # api_keys values are intentionally not logged anywhere in this handler
         start = time.monotonic()
         try:
-            result = await _RUNNERS[tool_name](req.input, req.timeout)
+            result = await _RUNNERS[tool_name](req.input, req.timeout, req.api_keys or {})
             elapsed = round(time.monotonic() - start, 2)
             return {"status": "ok", "output": result, "tool": tool_name, "elapsed": elapsed}
         except Exception as exc:
