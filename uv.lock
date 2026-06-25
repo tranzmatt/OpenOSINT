@@ -1489,7 +1489,7 @@ wheels = [
 
 [[package]]
 name = "openosint"
-version = "2.20.0"
+version = "2.25.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
@@ -1503,6 +1503,8 @@ dependencies = [
     { name = "prompt-toolkit" },
     { name = "python-dotenv" },
     { name = "python-whois" },
+    { name = "pyyaml" },
+    { name = "reportlab" },
     { name = "requests" },
     { name = "rich" },
     { name = "uvicorn", extra = ["standard"] },
@@ -1578,6 +1580,8 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "python-dotenv", marker = "extra == 'web'", specifier = ">=1.0.0" },
     { name = "python-whois", specifier = ">=0.9.0" },
+    { name = "pyyaml", specifier = ">=6.0" },
+    { name = "reportlab", specifier = ">=4.0" },
     { name = "reportlab", marker = "extra == 'all'", specifier = ">=4.0.0" },
     { name = "reportlab", marker = "extra == 'pdf'", specifier = ">=4.0.0" },
     { name = "requests", specifier = ">=2.31.0" },
