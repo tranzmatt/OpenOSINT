@@ -263,6 +263,20 @@ export function exportPng() {
   }
 }
 
+/**
+ * Returns the rendered center {x, y} of a node in Cytoscape canvas coordinates
+ * (CSS pixels from the top-left of the graph container, zoom/pan applied).
+ * Add the container's getBoundingClientRect() offset to get viewport coordinates.
+ * Returns null if the graph is uninitialised or the node id is not found.
+ */
+export function getNodeRenderedBBox(id) {
+  if (!_cy) return null;
+  const el = _cy.getElementById(id);
+  if (!el || el.length === 0) return null;
+  const pos = el.renderedPosition();
+  return { x: pos.x, y: pos.y };
+}
+
 /** Returns a plain { nodes, edges } object for JSON export or download. */
 export function exportJson() {
   if (!_cy) return { nodes: [], edges: [] };
