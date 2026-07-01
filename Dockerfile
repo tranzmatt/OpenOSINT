@@ -17,4 +17,7 @@ RUN mkdir -p /app/reports
 
 EXPOSE 8080
 
-CMD ["openosint", "web", "--host", "0.0.0.0", "--port", "8080", "--no-browser"]
+# --allow-remote is required for a non-loopback bind (GHSA-cqr4-hcfp-m6m4) —
+# safe here because the container network boundary is what's actually
+# exposed; publish the port only to trusted networks.
+CMD ["openosint", "web", "--host", "0.0.0.0", "--port", "8080", "--no-browser", "--allow-remote"]

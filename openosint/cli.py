@@ -488,15 +488,24 @@ def _build_parser() -> argparse.ArgumentParser:
     web_cmd.add_argument(
         "--host",
         type=str,
-        default="0.0.0.0",
+        default="127.0.0.1",
         metavar="HOST",
-        help="Host/IP to bind to (default: 0.0.0.0).",
+        help="Host/IP to bind to (default: 127.0.0.1, localhost-only).",
     )
     web_cmd.add_argument(
         "--no-browser",
         action="store_true",
         dest="no_browser",
         help="Do not open a browser tab automatically.",
+    )
+    web_cmd.add_argument(
+        "--allow-remote",
+        action="store_true",
+        dest="allow_remote",
+        help=(
+            "Required to bind to a non-loopback host (e.g. 0.0.0.0). "
+            "Exposes /api/setup and every other route to the network."
+        ),
     )
 
     # prompts
@@ -872,9 +881,10 @@ def _handle_sponsors() -> None:
 
 
 async def _handle_web(
-    host: str = "0.0.0.0",
+    host: str = "127.0.0.1",
     port: int = 8080,
     no_browser: bool = False,
+    allow_remote: bool = False,
 ) -> None:
     import threading
     import webbrowser
@@ -886,7 +896,7 @@ async def _handle_web(
         url = f"http://{display}:{port}"
         threading.Timer(1.5, lambda: webbrowser.open(url)).start()
 
-    await serve_async(host=host, port=port)
+    await serve_async(host=host, port=port, allow_remote=allow_remote)
 
 
 # ---------------------------------------------------------------------------
@@ -1043,9 +1053,10 @@ async def _async_main() -> None:
         )
     elif args.command == "web":
         await _handle_web(
-            host=getattr(args, "host", "0.0.0.0"),
+            host=getattr(args, "host", "127.0.0.1"),
             port=getattr(args, "port", 8080),
             no_browser=getattr(args, "no_browser", False),
+            allow_remote=getattr(args, "allow_remote", False),
         )
     elif args.command == "history":
         _handle_history(args)

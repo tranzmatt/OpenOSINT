@@ -1,1 +1,1 @@
-web: uvicorn openosint.web_server:create_app --factory --host 0.0.0.0 --port $PORT
+web: openosint web --host 0.0.0.0 --port $PORT --no-browser --allow-remote

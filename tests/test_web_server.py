@@ -830,6 +830,136 @@ class TestCreateAppFactoryRoutes:
         assert resp.json()["demo_mode"] is True
 
 
+class TestSetupEndpointGuards:
+    """GHSA-cqr4-hcfp-m6m4: /api/setup must reject remote callers, unknown
+    keys, and malformed *_BASE_URL values."""
+
+    async def test_loopback_caller_can_save_allowlisted_key(self, http_client, tmp_path, monkeypatch):
+        import openosint.web_server as ws
+
+        monkeypatch.setattr(ws, "_ROOT", tmp_path)
+        resp = await http_client.post("/api/setup", json={"SHODAN_API_KEY": "abc123"})
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["applied"] == ["SHODAN_API_KEY"]
+        assert os.environ.get("SHODAN_API_KEY") == "abc123"
+        os.environ.pop("SHODAN_API_KEY", None)
+
+    async def test_remote_caller_is_rejected_before_body_is_applied(self, tmp_path, monkeypatch):
+        import openosint.web_server as ws
+
+        monkeypatch.setattr(ws, "_ROOT", tmp_path)
+        app = ws.create_app()
+        transport = ASGITransport(app=app, client=("203.0.113.5", 12345))
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            resp = await c.post("/api/setup", json={"OPENAI_BASE_URL": "http://attacker.example/v1"})
+
+        assert resp.status_code == 403
+        assert "OPENAI_BASE_URL" not in os.environ
+        assert not (tmp_path / ".env").exists()
+
+    async def test_remote_caller_with_no_token_configured_is_rejected(self, tmp_path, monkeypatch):
+        """No OPENOSINT_SETUP_TOKEN set → remote setup stays off, even with a header."""
+        import openosint.web_server as ws
+
+        monkeypatch.setattr(ws, "_ROOT", tmp_path)
+        monkeypatch.delenv("OPENOSINT_SETUP_TOKEN", raising=False)
+        app = ws.create_app()
+        transport = ASGITransport(app=app, client=("203.0.113.5", 12345))
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            resp = await c.post(
+                "/api/setup",
+                json={"SHODAN_API_KEY": "x"},
+                headers={"X-Setup-Token": "guessed-token"},
+            )
+
+        assert resp.status_code == 403
+        assert "SHODAN_API_KEY" not in os.environ
+
+    async def test_remote_caller_with_wrong_token_is_rejected(self, tmp_path, monkeypatch):
+        import openosint.web_server as ws
+
+        monkeypatch.setattr(ws, "_ROOT", tmp_path)
+        monkeypatch.setenv("OPENOSINT_SETUP_TOKEN", "correct-token")
+        app = ws.create_app()
+        transport = ASGITransport(app=app, client=("203.0.113.5", 12345))
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            resp = await c.post(
+                "/api/setup",
+                json={"SHODAN_API_KEY": "x"},
+                headers={"X-Setup-Token": "wrong-token"},
+            )
+
+        assert resp.status_code == 403
+        assert "SHODAN_API_KEY" not in os.environ
+
+    async def test_remote_caller_with_correct_token_is_accepted(self, tmp_path, monkeypatch):
+        import openosint.web_server as ws
+
+        monkeypatch.setattr(ws, "_ROOT", tmp_path)
+        monkeypatch.setenv("OPENOSINT_SETUP_TOKEN", "correct-token")
+        app = ws.create_app()
+        transport = ASGITransport(app=app, client=("203.0.113.5", 12345))
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            resp = await c.post(
+                "/api/setup",
+                json={"SHODAN_API_KEY": "x"},
+                headers={"X-Setup-Token": "correct-token"},
+            )
+
+        assert resp.status_code == 200
+        assert resp.json()["applied"] == ["SHODAN_API_KEY"]
+        os.environ.pop("SHODAN_API_KEY", None)
+
+    async def test_non_allowlisted_key_is_dropped_not_written(self, http_client, tmp_path, monkeypatch):
+        import openosint.web_server as ws
+
+        monkeypatch.setattr(ws, "_ROOT", tmp_path)
+        resp = await http_client.post("/api/setup", json={"NOT_A_REAL_ENV_VAR": "x"})
+
+        assert resp.status_code == 200
+        assert resp.json()["rejected"] == ["NOT_A_REAL_ENV_VAR"]
+        assert "NOT_A_REAL_ENV_VAR" not in os.environ
+
+    async def test_malformed_base_url_is_rejected(self, http_client, tmp_path, monkeypatch):
+        import openosint.web_server as ws
+
+        monkeypatch.setattr(ws, "_ROOT", tmp_path)
+        resp = await http_client.post("/api/setup", json={"OPENAI_BASE_URL": "javascript:alert(1)"})
+
+        assert resp.status_code == 200
+        assert resp.json()["rejected"] == ["OPENAI_BASE_URL"]
+        assert "OPENAI_BASE_URL" not in os.environ
+
+
+class TestRequireSafeBind:
+    """GHSA-cqr4-hcfp-m6m4: non-loopback binds need an explicit opt-in."""
+
+    def test_loopback_host_is_always_allowed(self):
+        from openosint.web_server import _require_safe_bind
+
+        _require_safe_bind("127.0.0.1", allow_remote=False)  # no raise
+
+    def test_wildcard_bind_without_opt_in_raises(self, monkeypatch):
+        from openosint.web_server import _require_safe_bind
+
+        monkeypatch.delenv("OPENOSINT_ALLOW_REMOTE", raising=False)
+        with pytest.raises(SystemExit):
+            _require_safe_bind("0.0.0.0", allow_remote=False)
+
+    def test_wildcard_bind_with_allow_remote_flag_passes(self):
+        from openosint.web_server import _require_safe_bind
+
+        _require_safe_bind("0.0.0.0", allow_remote=True)  # no raise
+
+    def test_wildcard_bind_with_env_var_passes(self, monkeypatch):
+        from openosint.web_server import _require_safe_bind
+
+        monkeypatch.setenv("OPENOSINT_ALLOW_REMOTE", "1")
+        _require_safe_bind("0.0.0.0", allow_remote=False)  # no raise
+
+
 class TestApiKeysNotLogged:
     async def test_secret_key_absent_from_log_records(self, http_client, caplog):
         secret = "top-secret-key-abc123"

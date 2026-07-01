@@ -9,7 +9,7 @@ Routes:
   POST /api/run/{tool_name}    run tool, return full result
   GET  /api/stream/{tool_name} stream output via Server-Sent Events
   POST /api/chat               AI chat with tool_use (SSE)
-  POST /api/setup              save API keys to .env
+  POST /api/setup              save API keys to .env (localhost only)
   GET  /docs/*                 docs/ static files (mounted)
 """
 
@@ -19,11 +19,13 @@ import asyncio
 import json
 import os
 import re
+import secrets
 import shutil
 import time
 from collections import deque as _deque
 from pathlib import Path
 from typing import AsyncIterator
+from urllib.parse import urlparse as _urlparse
 
 import requests as _requests
 
@@ -100,6 +102,43 @@ _RL_MAX_REQS: int = int(os.getenv("RATE_LIMIT_MAX", "30"))
 _KEYLESS_TOOLS: frozenset[str] = frozenset(
     {"search_whois", "search_dns", "generate_dorks", "search_ip", "search_paste"}
 )
+
+
+_LOOPBACK_HOSTS: frozenset[str] = frozenset({"127.0.0.1", "::1"})
+
+
+def _is_loopback_request(request: "Request") -> bool:
+    """True only for connections that actually terminate on this host.
+
+    Deliberately ignores X-Forwarded-For / CF-Connecting-IP — those are
+    attacker-controlled headers. GHSA-cqr4-hcfp-m6m4: /api/setup writes to
+    live process env vars, so it must not trust proxy headers the way the
+    keyless-tool rate limiter does.
+    """
+    return bool(request.client) and request.client.host in _LOOPBACK_HOSTS
+
+
+def _setup_request_is_authorized(request: "Request") -> bool:
+    """Gate for /api/setup that does not depend on network topology.
+
+    request.client.host reflects whatever peer terminates the TCP connection
+    to this process — on a PaaS like Heroku that's the platform's router, a
+    distinct network peer, not loopback. That's the normal case and it's
+    already rejected below. But this must not be the *only* line of defense:
+    a future deploy behind an on-host reverse proxy (nginx sidecar, buildpack,
+    etc.) would make the router's connection look like loopback and silently
+    reopen GHSA-cqr4-hcfp-m6m4. So a loopback caller is always allowed (the
+    single-user local CLI case), and a non-loopback caller is allowed only if
+    it presents a token matching OPENOSINT_SETUP_TOKEN — which is unset by
+    default, so remote /api/setup is off unless an operator opts in.
+    """
+    if _is_loopback_request(request):
+        return True
+    expected = os.environ.get("OPENOSINT_SETUP_TOKEN", "").strip()
+    if not expected:
+        return False
+    supplied = request.headers.get("X-Setup-Token", "")
+    return secrets.compare_digest(supplied, expected)
 
 
 def _get_client_ip(request: "Request") -> str:
@@ -495,6 +534,26 @@ _KNOWN_ENV_KEYS = [
     "BRIGHTDATA_SERP_ZONE",
     "BRIGHTDATA_UNLOCKER_ZONE",
 ]
+
+# Keys /api/setup is allowed to write. Anything else in the request body is
+# dropped — GHSA-cqr4-hcfp-m6m4 let a caller set arbitrary env vars (e.g.
+# OPENAI_BASE_URL) this way, redirecting outbound chat traffic and its auth
+# header to attacker infra.
+_SETUP_ALLOWED_KEYS: frozenset[str] = frozenset(_KNOWN_ENV_KEYS) | {
+    "OPENAI_BASE_URL",
+    "OPENAI_MODEL",
+    "OPENAI_API_KEY",
+}
+
+# Keys whose value must be a well-formed http(s) URL — prevents javascript:/
+# file:/gopher: schemes or bare hostnames sneaking into a *_BASE_URL var that
+# later gets used to build outbound requests.
+_SETUP_URL_KEYS: frozenset[str] = frozenset({"OPENAI_BASE_URL"})
+
+
+def _is_valid_base_url(value: str) -> bool:
+    parsed = _urlparse(value)
+    return parsed.scheme in ("http", "https") and bool(parsed.netloc)
 
 
 def _is_setup_complete() -> bool:
@@ -1425,6 +1484,18 @@ def create_app() -> FastAPI:
 
     @app.post("/api/setup")
     async def setup(request: Request):
+        # GHSA-cqr4-hcfp-m6m4: this endpoint writes to live process env vars
+        # and .env, so it must never be reachable from the network. Loopback
+        # callers are always allowed; anyone else needs OPENOSINT_SETUP_TOKEN.
+        if not _setup_request_is_authorized(request):
+            return JSONResponse(
+                {
+                    "status": "error",
+                    "message": "Setup is only allowed from localhost, or with a valid X-Setup-Token.",
+                },
+                status_code=403,
+            )
+
         body: dict = await request.json()
         env_path = _ROOT / ".env"
         existing: dict[str, str] = {}
@@ -1434,13 +1505,26 @@ def create_app() -> FastAPI:
                 if "=" in line and not line.startswith("#"):
                     k, _, v = line.partition("=")
                     existing[k.strip()] = v.strip()
+
+        applied: list[str] = []
+        rejected: list[str] = []
         for k, v in body.items():
+            key = str(k).strip()
             v_str = str(v).strip()
-            if v_str:
-                existing[k.strip()] = v_str
-                os.environ[k.strip()] = v_str
+            if not v_str:
+                continue
+            if key not in _SETUP_ALLOWED_KEYS:
+                rejected.append(key)
+                continue
+            if key in _SETUP_URL_KEYS and not _is_valid_base_url(v_str):
+                rejected.append(key)
+                continue
+            existing[key] = v_str
+            os.environ[key] = v_str
+            applied.append(key)
+
         env_path.write_text("\n".join(f"{k}={v}" for k, v in existing.items()) + "\n")
-        return {"status": "ok"}
+        return {"status": "ok", "applied": applied, "rejected": rejected}
 
     # ------------------------------------------------------------------
     # POST /api/demo/chat  — pre-scripted demo stream, no API key needed
@@ -1496,8 +1580,33 @@ def create_app() -> FastAPI:
 # ---------------------------------------------------------------------------
 
 
-async def serve_async(host: str = "0.0.0.0", port: int = 8080) -> None:
+_SAFE_BIND_HOSTS: frozenset[str] = frozenset({"127.0.0.1", "localhost", "::1"})
+
+
+def _require_safe_bind(host: str, allow_remote: bool) -> None:
+    """Refuse to bind to a non-loopback interface without an explicit opt-in.
+
+    GHSA-cqr4-hcfp-m6m4: binding 0.0.0.0 by default put /api/setup (and every
+    other route) on the network unintentionally.
+    """
+    if host in _SAFE_BIND_HOSTS:
+        return
+    if allow_remote or os.environ.get("OPENOSINT_ALLOW_REMOTE", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    ):
+        return
+    raise SystemExit(
+        f"Refusing to bind to {host!r}: this exposes the server to the network. "
+        "Pass --allow-remote (or set OPENOSINT_ALLOW_REMOTE=1) if that's intended, "
+        "and put it behind a firewall/reverse proxy."
+    )
+
+
+async def serve_async(host: str = "127.0.0.1", port: int = 8080, allow_remote: bool = False) -> None:
     """Run uvicorn within an already-running asyncio event loop."""
+    _require_safe_bind(host, allow_remote)
     load_dotenv()
     app = create_app()
     _print_banner(host, port)
@@ -1506,8 +1615,9 @@ async def serve_async(host: str = "0.0.0.0", port: int = 8080) -> None:
     await server.serve()
 
 
-def run_server(host: str = "0.0.0.0", port: int = 8080) -> None:
+def run_server(host: str = "127.0.0.1", port: int = 8080, allow_remote: bool = False) -> None:
     """Standalone blocking entry point."""
+    _require_safe_bind(host, allow_remote)
     load_dotenv()
     app = create_app()
     _print_banner(host, port)
