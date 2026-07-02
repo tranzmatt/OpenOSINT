@@ -592,6 +592,12 @@ Set `ANTHROPIC_API_KEY` (and optionally `HIBP_API_KEY`, `IPINFO_TOKEN`) in a `.e
 | DNS (system resolver) | — | `search_dns` | Community | None |
 | Google Search | https://www.google.com | `generate_dorks` | Community | None |
 
+## Learn the Method
+
+OpenOSINT is the tool. The **AI OSINT Operator's Playbook** (paid guide, $39) is the method — step-by-step workflows for running investigations with ChatGPT, Claude, and OpenOSINT.
+
+**→ [Get the Playbook](https://tommasodev.gumroad.com/l/ai-osint-playbook?utm_source=github&utm_medium=readme&utm_campaign=operator_playbook)**
+
 ## Resources
 
 ### Free Starter Set
@@ -613,6 +619,8 @@ OpenOSINT gives you the tooling. The **AI OSINT Prompt Pack** gives you the meth
 - 7-page PDF · instant download · pairs directly with OpenOSINT
 
 **→ [Get the Prompt Pack ($29)](https://tommasodev.gumroad.com/l/ai-osint-prompt-pack?utm_source=github&utm_medium=readme&utm_campaign=prompt_pack)**
+
+Also available: [AI OSINT Operator's Playbook](https://tommasodev.gumroad.com/l/ai-osint-playbook?utm_source=github&utm_medium=readme&utm_campaign=operator_playbook) — paid guide, $39, covering full investigation workflows.
 
 _Buying it directly funds OpenOSINT's development._
 

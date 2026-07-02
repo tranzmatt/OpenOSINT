@@ -108,6 +108,9 @@ def _build_parser() -> argparse.ArgumentParser:
             "  openosint --json email target@example.com\n"
             "  openosint --provider ollama                 # use local Ollama\n"
             "  openosint --provider ollama --ollama-model mistral\n"
+            "\n"
+            "Learn the method: AI OSINT Operator's Playbook (paid guide, $39)\n"
+            "  https://tommasodev.gumroad.com/l/ai-osint-playbook?utm_source=cli&utm_medium=help&utm_campaign=operator_playbook\n"
         ),
     )
     parser.add_argument(
