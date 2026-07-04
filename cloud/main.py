@@ -12,9 +12,11 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
+from starlette.middleware.sessions import SessionMiddleware
 
 from cloud import db, keys
-from cloud.routes import checkout, enrich, usage, webhook
+from cloud.config import resolve_session_secret
+from cloud.routes import checkout, enrich, oauth as oauth_routes, usage, webhook
 from cloud.routes import keys as keys_route
 from cloud.routes.mcp_gateway import create_mcp_asgi_app
 
@@ -39,11 +41,13 @@ def create_app() -> FastAPI:
         ),
         lifespan=_lifespan,
     )
+    app.add_middleware(SessionMiddleware, secret_key=resolve_session_secret())
     app.include_router(enrich.router,      prefix="/v1")
     app.include_router(usage.router,       prefix="/v1")
     app.include_router(checkout.router,    prefix="/v1")
     app.include_router(webhook.router,     prefix="/v1")
     app.include_router(keys_route.router,  prefix="/v1")
+    app.include_router(oauth_routes.router)
     app.mount("/mcp", create_mcp_asgi_app())
     return app
 
