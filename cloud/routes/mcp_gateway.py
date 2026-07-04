@@ -46,10 +46,10 @@ async def _resolve_key(tool: str, customer: db.Customer) -> str | None:
     cfg = TOOL_KEY_CONFIG.get(tool)
     if cfg is None or cfg.source == KeySource.none:
         return None
-    if cfg.source == KeySource.server:
+    if cfg.source == KeySource.platform:
         return os.environ.get(cfg.env_var or "", "") or None
     stored = await keys.get_key(customer.api_key, cfg.provider)
-    if cfg.source == KeySource.customer and stored is None:
+    if cfg.source == KeySource.tenant and stored is None:
         raise ValueError(
             f"Tool '{tool}' requires a '{cfg.provider}' API key. "
             f"Add it via: POST /v1/keys "

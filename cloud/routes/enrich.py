@@ -109,13 +109,13 @@ async def _resolve_key(tool: str, customer: db.Customer) -> str | None:
     if cfg is None or cfg.source == KeySource.none:
         return None
 
-    if cfg.source == KeySource.server:
+    if cfg.source == KeySource.platform:
         return os.environ.get(cfg.env_var, "") or None
 
-    # customer or customer_optional — look up from the customer's encrypted store
+    # tenant or tenant_optional — look up from the customer's encrypted store
     stored = await keys.get_key(customer.api_key, cfg.provider)
 
-    if cfg.source == KeySource.customer and stored is None:
+    if cfg.source == KeySource.tenant and stored is None:
         raise HTTPException(
             status_code=422,
             detail=(
@@ -125,7 +125,7 @@ async def _resolve_key(tool: str, customer: db.Customer) -> str | None:
             ),
         )
 
-    return stored  # None is valid for customer_optional when key is absent
+    return stored  # None is valid for tenant_optional when key is absent
 
 
 def _raise_402(plan: str) -> None:
