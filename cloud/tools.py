@@ -49,6 +49,14 @@ ALLOW_LIST: dict[str, Callable[[str, str | None], Coroutine[Any, Any, str]]] = {
 }
 
 
+# Attribution required by upstream ToS on every Cloud response for this tool.
+# Cloud-only: appended in dispatch() below, not in the shared
+# openosint.json_output.format_tool_result() used by the CLI and MCP-local.
+ATTRIBUTION: dict[str, str] = {
+    "search_shodan": "Data provided by Shodan (shodan.io).",
+}
+
+
 async def dispatch(tool: str, target: str, api_key: str | None = None) -> dict:
     """
     Run a tool from the allow-list and return a format_tool_result dict.
@@ -59,4 +67,8 @@ async def dispatch(tool: str, target: str, api_key: str | None = None) -> dict:
     if tool not in ALLOW_LIST:
         raise ValueError(f"Tool '{tool}' is not available in v1")
     raw = await ALLOW_LIST[tool](target, api_key)
-    return format_tool_result(tool, target, raw)
+    result = format_tool_result(tool, target, raw)
+    attribution = ATTRIBUTION.get(tool)
+    if attribution:
+        result["results"].append(attribution)
+    return result

@@ -479,3 +479,24 @@ async def test_benefit_grant_created_fetches_full_license_key():
     assert "FULLKEY" in db._MEMORY_CUSTOMERS
     assert db._MEMORY_CUSTOMERS["FULLKEY"].api_key == "FULLKEY"
     assert db._MEMORY_CUSTOMERS["FULLKEY"].polar_customer_id == "polar_cust_001"
+
+
+# ── (l) Shodan attribution appended only for search_shodan ───────────────────
+
+
+async def test_dispatch_appends_shodan_attribution():
+    from cloud import tools as cloud_tools
+
+    with patch("cloud.tools.run_shodan_osint", new=AsyncMock(return_value="[Shodan] Host: 1.2.3.4")):
+        result = await cloud_tools.dispatch("search_shodan", "1.2.3.4", api_key="k")
+
+    assert result["results"][-1] == "Data provided by Shodan (shodan.io)."
+
+
+async def test_dispatch_does_not_attribute_other_tools():
+    from cloud import tools as cloud_tools
+
+    with patch("cloud.tools.run_dns_osint", new=AsyncMock(return_value="A: 1.2.3.4")):
+        result = await cloud_tools.dispatch("search_dns", "example.com", api_key=None)
+
+    assert "Data provided by Shodan (shodan.io)." not in result["results"]

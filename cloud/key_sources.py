@@ -44,8 +44,8 @@ class ToolKeyConfig(NamedTuple):
 TOOL_KEY_CONFIG: dict[str, ToolKeyConfig] = {
     # Sponsored — key is platform-provided; tenants get this included.
     "search_ip2location": ToolKeyConfig("IP2LOCATION_API_KEY", KeySource.platform, provider=None),
-    # Platform pool — Shodan ToS requires attribution on every response (see
-    # cloud/tools.py dispatch(); attribution wiring lands in a later commit).
+    # Platform pool — Shodan ToS requires attribution on every response, added
+    # in cloud/tools.py dispatch() via the ATTRIBUTION map.
     # Cost is a single tunable constant in cloud/config.SHODAN_CREDIT_COST.
     "search_shodan":      ToolKeyConfig("SHODAN_API_KEY",      KeySource.platform, provider=None, credit_cost=SHODAN_CREDIT_COST),
     # BYOK required — tenant must POST /v1/keys with the provider string below.
