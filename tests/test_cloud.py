@@ -19,6 +19,7 @@ Coverage:
 """
 from __future__ import annotations
 
+import dataclasses
 import os
 from unittest.mock import AsyncMock, patch
 
@@ -27,7 +28,7 @@ from httpx import ASGITransport, AsyncClient
 
 from cloud import db, keys
 from cloud.main import create_app
-from cloud.routes.webhook import _handle_benefit_grant
+from cloud.routes.webhook import _handle_benefit_grant, _handle_checkout_updated
 
 # ── fixtures ──────────────────────────────────────────────────────────────────
 
@@ -38,6 +39,9 @@ def reset_memory_store():
     db._MEMORY_CUSTOMERS.clear()
     db._MEMORY_BY_POLAR_ID.clear()
     db._MEMORY_EVENTS.clear()
+    db._MEMORY_USERS.clear()
+    db._MEMORY_USERS_BY_IDENTITY.clear()
+    db._next_user_id = 1
     keys._MEMORY_KEYS.clear()
     # Reset cached Fernet so tests always get a fresh ephemeral key
     keys._fernet = None
@@ -519,3 +523,231 @@ async def test_shodan_attribution_reaches_rest_response_body(client):
     assert resp.status_code == 200
     body = resp.json()
     assert body["results"] == ["[Shodan] Host: 1.2.3.4", "Data provided by Shodan (shodan.io)."]
+
+
+# ── (n) checkout.updated <-> benefit_grant order-independent rendezvous ─────
+
+
+async def test_checkout_before_benefit_grant_completes_link_on_benefit_grant():
+    user = await db.get_or_create_user("github", "gh_1", "a@example.com")
+
+    await _handle_checkout_updated({
+        "status": "succeeded",
+        "customer_id": "cust_order_a",
+        "metadata": {"reference_id": str(user.id)},
+    })
+
+    linked = await db.get_user(user.id)
+    assert linked.polar_customer_id == "cust_order_a"
+    assert linked.customer_api_key is None  # no customers row yet
+
+    with patch("cloud.polar.fetch_license_key", new=AsyncMock(return_value="FULLKEY_A")):
+        await _handle_benefit_grant({
+            "customer_id": "cust_order_a",
+            "benefit_id": "benefit_payg",
+            "properties": {"license_key_id": "lk_a"},
+        })
+
+    completed = await db.get_user(user.id)
+    assert completed.customer_api_key == "FULLKEY_A"
+
+
+async def test_benefit_grant_before_checkout_completes_link_on_checkout():
+    user = await db.get_or_create_user("github", "gh_2", "b@example.com")
+
+    with patch("cloud.polar.fetch_license_key", new=AsyncMock(return_value="FULLKEY_B")):
+        await _handle_benefit_grant({
+            "customer_id": "cust_order_b",
+            "benefit_id": "benefit_payg",
+            "properties": {"license_key_id": "lk_b"},
+        })
+
+    # Customer created; user not linked yet since checkout.updated hasn't landed
+    assert db._MEMORY_CUSTOMERS["FULLKEY_B"].polar_customer_id == "cust_order_b"
+    pre_link = await db.get_user(user.id)
+    assert pre_link.polar_customer_id is None
+
+    await _handle_checkout_updated({
+        "status": "succeeded",
+        "customer_id": "cust_order_b",
+        "metadata": {"reference_id": str(user.id)},
+    })
+
+    linked = await db.get_user(user.id)
+    assert linked.polar_customer_id == "cust_order_b"
+    assert linked.customer_api_key == "FULLKEY_B"
+
+
+async def test_checkout_updated_missing_or_nonnumeric_reference_id_skips_link_silently():
+    # No metadata / reference_id at all — must not crash.
+    await _handle_checkout_updated({"status": "succeeded", "customer_id": "cust_order_c"})
+    assert db._MEMORY_USERS == {}
+
+    # Non-numeric reference_id (shouldn't happen, but must not crash either).
+    await _handle_checkout_updated({
+        "status": "succeeded",
+        "customer_id": "cust_order_c",
+        "metadata": {"reference_id": "not-a-number"},
+    })
+    assert db._MEMORY_USERS == {}
+
+    # benefit_grant still creates the customer independently of the failed link.
+    with patch("cloud.polar.fetch_license_key", new=AsyncMock(return_value="FULLKEY_C")):
+        await _handle_benefit_grant({
+            "customer_id": "cust_order_c",
+            "benefit_id": "benefit_payg",
+            "properties": {"license_key_id": "lk_c"},
+        })
+    assert db._MEMORY_CUSTOMERS["FULLKEY_C"].polar_customer_id == "cust_order_c"
+
+
+async def test_checkout_updated_non_terminal_status_does_not_link():
+    user = await db.get_or_create_user("github", "gh_4", "d@example.com")
+
+    await _handle_checkout_updated({
+        "status": "open",
+        "customer_id": "cust_order_d",
+        "metadata": {"reference_id": str(user.id)},
+    })
+
+    untouched = await db.get_user(user.id)
+    assert untouched.polar_customer_id is None
+    assert untouched.customer_api_key is None
+
+
+async def test_conflicting_customer_api_key_claim_is_logged_not_raised():
+    user1 = await db.get_or_create_user("github", "gh_5a", "e1@example.com")
+    user2 = await db.get_or_create_user("github", "gh_5b", "e2@example.com")
+
+    # user1 is already fully linked to a paid customer.
+    db._MEMORY_USERS[user1.id] = dataclasses.replace(
+        user1, polar_customer_id="cust_shared", customer_api_key="SHARED_KEY"
+    )
+    db._MEMORY_CUSTOMERS["SHARED_KEY"] = db.Customer(
+        api_key="SHARED_KEY", polar_customer_id="cust_shared", credits=100, plan="pro"
+    )
+    db._MEMORY_BY_POLAR_ID["cust_shared"] = "SHARED_KEY"
+
+    # user2's checkout resolves to the SAME polar_customer_id — the conflict case.
+    await _handle_checkout_updated({
+        "status": "succeeded",
+        "customer_id": "cust_shared",
+        "metadata": {"reference_id": str(user2.id)},
+    })
+
+    linked_user2 = await db.get_user(user2.id)
+    assert linked_user2.polar_customer_id == "cust_shared"
+    assert linked_user2.customer_api_key is None  # conflict — not linked, no raise
+
+    linked_user1 = await db.get_user(user1.id)
+    assert linked_user1.customer_api_key == "SHARED_KEY"  # unaffected
+
+
+# ── (o) re-subscription overwrites the stale key; cross-user claim rejected ─
+
+
+async def test_resubscription_overwrites_customer_api_key_on_benefit_grant_side():
+    user = await db.get_or_create_user("github", "gh_6", "f@example.com")
+
+    with patch("cloud.polar.fetch_license_key", new=AsyncMock(return_value="OLD_KEY")):
+        await _handle_benefit_grant({
+            "customer_id": "cust_resub",
+            "benefit_id": "benefit_payg",
+            "properties": {"license_key_id": "lk_old"},
+        })
+    await _handle_checkout_updated({
+        "status": "succeeded",
+        "customer_id": "cust_resub",
+        "metadata": {"reference_id": str(user.id)},
+    })
+    assert (await db.get_user(user.id)).customer_api_key == "OLD_KEY"
+
+    # Re-subscription: benefit_grant fires again for the SAME customer_id
+    # with a NEW license key — must overwrite, not freeze on OLD_KEY.
+    with patch("cloud.polar.fetch_license_key", new=AsyncMock(return_value="NEW_KEY")):
+        await _handle_benefit_grant({
+            "customer_id": "cust_resub",
+            "benefit_id": "benefit_payg",
+            "properties": {"license_key_id": "lk_new"},
+        })
+
+    assert (await db.get_user(user.id)).customer_api_key == "NEW_KEY"
+
+
+async def test_resubscription_overwrites_customer_api_key_on_checkout_side():
+    user = await db.get_or_create_user("github", "gh_7", "g@example.com")
+
+    with patch("cloud.polar.fetch_license_key", new=AsyncMock(return_value="OLD_KEY2")):
+        await _handle_benefit_grant({
+            "customer_id": "cust_resub2",
+            "benefit_id": "benefit_payg",
+            "properties": {"license_key_id": "lk_old2"},
+        })
+    await _handle_checkout_updated({
+        "status": "succeeded",
+        "customer_id": "cust_resub2",
+        "metadata": {"reference_id": str(user.id)},
+    })
+    assert (await db.get_user(user.id)).customer_api_key == "OLD_KEY2"
+
+    # New checkout completes for the same customer AFTER a fresh benefit_grant
+    # already rotated the customers-table key — checkout side must pick up
+    # the new value too, not keep coalescing onto the stale one.
+    with patch("cloud.polar.fetch_license_key", new=AsyncMock(return_value="NEW_KEY2")):
+        await _handle_benefit_grant({
+            "customer_id": "cust_resub2",
+            "benefit_id": "benefit_payg",
+            "properties": {"license_key_id": "lk_new2"},
+        })
+    await _handle_checkout_updated({
+        "status": "succeeded",
+        "customer_id": "cust_resub2",
+        "metadata": {"reference_id": str(user.id)},
+    })
+
+    assert (await db.get_user(user.id)).customer_api_key == "NEW_KEY2"
+
+
+async def test_cross_user_key_claim_rejected_on_benefit_grant_side():
+    user1 = await db.get_or_create_user("github", "gh_8a", "h1@example.com")
+    user2 = await db.get_or_create_user("github", "gh_8b", "h2@example.com")
+
+    # Both users are (incorrectly, edge-case) linked to the same polar_customer_id.
+    db._MEMORY_USERS[user1.id] = dataclasses.replace(
+        user1, polar_customer_id="cust_dup", customer_api_key="KEY_ONE"
+    )
+    db._MEMORY_USERS[user2.id] = dataclasses.replace(
+        user2, polar_customer_id="cust_dup", customer_api_key="KEY_TWO"
+    )
+
+    # benefit_grant fires with a key that collides with user1's existing key.
+    # user1's row is a same-value no-op; user2's row must be rejected since it
+    # would collide with user1's now-current value.
+    await db.link_customer_api_key_by_polar_id("cust_dup", "KEY_ONE")
+
+    assert (await db.get_user(user1.id)).customer_api_key == "KEY_ONE"
+    assert (await db.get_user(user2.id)).customer_api_key == "KEY_TWO"  # untouched, not overwritten
+
+
+async def test_first_time_link_via_checkout_still_works_after_coalesce_flip():
+    """Base case for link_checkout_to_user's COALESCE flip: a user who has
+    never been linked before (customer_api_key is None) must still pick up
+    the key on the first checkout.updated, same as before the re-subscription
+    fix reordered the COALESCE arguments."""
+    user = await db.get_or_create_user("github", "gh_9", "i@example.com")
+
+    with patch("cloud.polar.fetch_license_key", new=AsyncMock(return_value="FIRSTKEY")):
+        await _handle_benefit_grant({
+            "customer_id": "cust_first",
+            "benefit_id": "benefit_payg",
+            "properties": {"license_key_id": "lk_first"},
+        })
+    assert (await db.get_user(user.id)).customer_api_key is None  # not linked yet
+
+    await _handle_checkout_updated({
+        "status": "succeeded",
+        "customer_id": "cust_first",
+        "metadata": {"reference_id": str(user.id)},
+    })
+
+    assert (await db.get_user(user.id)).customer_api_key == "FIRSTKEY"

@@ -81,6 +81,14 @@ async def _handle_benefit_grant(data: dict) -> None:
         "Customer upserted from benefit_grant: plan=%s credits=%d", plan, credits
     )
 
+    # Opportunistically complete the checkout.updated <-> benefit_grant
+    # rendezvous: fills in users.customer_api_key if checkout.updated already
+    # recorded polar_customer_id for some user. No-op otherwise.
+    if customer_id:
+        await db.link_customer_api_key_by_polar_id(customer_id, api_key)
+    else:
+        logger.warning("benefit_grant: no customer_id, skipping api_key link")
+
 
 async def _handle_benefit_revoke(data: dict) -> None:
     """Zero credits when a license key benefit is revoked."""
@@ -132,18 +140,41 @@ async def _handle_subscription_update(data: dict) -> None:
 
 async def _handle_checkout_updated(data: dict) -> None:
     """
-    LOG-ONLY — no link-write logic yet.
+    Link the OAuth-login user to their Polar customer on checkout completion.
 
-    This is the payload-confirmation gate for the OAuth-login → api_key
-    linking feature: reference_id (== users.id, passed as a ?reference_id=
-    query param on the hosted checkout link) is expected to land in this
-    event's checkout-session metadata per Polar's docs, but the exact JSON
-    path, the completed-checkout status value, and whether data.customer_id
-    is present here the same way it is on benefit_grant.created are all
-    unconfirmed against a live payload. Do not add link-write logic until
-    a real/test checkout has been inspected and those three facts verified.
+    reference_id (== users.id, passed as a ?reference_id= query param on the
+    hosted checkout link) arrives as a string in data.metadata.reference_id.
+    Checkouts made without our dashboard link carry no reference_id — those
+    are skipped silently, not treated as an error.
     """
     logger.info("checkout.updated payload: %s", data)
+
+    if data.get("status") != polar.COMPLETED_CHECKOUT_STATUS:
+        return
+
+    customer_id = data.get("customer_id", "")
+    reference_id_raw = (data.get("metadata") or {}).get("reference_id")
+    if not customer_id:
+        logger.warning("checkout.updated: no customer_id, skipping link")
+        return
+    if reference_id_raw is None:
+        logger.warning("checkout.updated: no reference_id, skipping link")
+        return
+    try:
+        user_id = int(reference_id_raw)
+    except (TypeError, ValueError):
+        logger.warning(
+            "checkout.updated: non-numeric reference_id=%r, skipping link",
+            reference_id_raw,
+        )
+        return
+
+    await db.link_checkout_to_user(user_id, customer_id)
+    logger.info(
+        "Linked user_id=%d to polar_customer_id=%s via checkout.updated",
+        user_id,
+        customer_id,
+    )
 
 
 # ── dispatch table ────────────────────────────────────────────────────────────

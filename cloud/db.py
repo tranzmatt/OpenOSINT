@@ -17,6 +17,8 @@ is_event_processed(event_id) → bool
 mark_event_processed(event_id)
 get_or_create_user(provider, provider_user_id, email) → User
 get_user(user_id)            → User | None
+link_checkout_to_user(user_id, polar_customer_id)
+link_customer_api_key_by_polar_id(polar_customer_id, api_key)
 """
 from __future__ import annotations
 
@@ -315,3 +317,134 @@ def _user_from_row(row: Any) -> User:
         customer_api_key=row["customer_api_key"],
         created_at=row["created_at"],
     )
+
+
+def _customer_api_key_claimed(api_key: str, exclude_user_id: int) -> bool:
+    """True if some other user already holds this customer_api_key (memory mode)."""
+    return any(
+        u.customer_api_key == api_key
+        for uid, u in _MEMORY_USERS.items()
+        if uid != exclude_user_id
+    )
+
+
+async def link_checkout_to_user(user_id: int, polar_customer_id: str) -> None:
+    """
+    checkout.updated side of the order-independent rendezvous: record
+    polar_customer_id on the user, and opportunistically (re-)fill in
+    customer_api_key from the customers row for this polar_customer_id, if
+    one exists.
+
+    This OVERWRITES an existing customer_api_key on this same user's row —
+    a re-subscription with a new license key must not get frozen on the
+    stale one. customer_api_key carries a partial unique index (one user
+    per key); that index is the only thing that blocks a write here, and it
+    only fires for the genuine cross-user case (this polar_customer_id's
+    latest key is already claimed by a *different* user row). On that
+    conflict the api_key link is dropped and only polar_customer_id is
+    written; billing (customers table) is never touched by this function,
+    so a link failure can't affect credits.
+
+    ⚠️  No ordering protection: this reads whatever upsert_customer most
+    recently wrote as canonical for polar_customer_id, and upsert_customer
+    itself has none either. If our processing of an OLDER benefit_grant
+    event fails to reach mark_event_processed (crash/timeout) before a
+    NEWER, distinct benefit_grant event for the same customer completes,
+    a later successful retry of the older event will overwrite the newer
+    key. Event-id dedup (is_event_processed) doesn't catch this — it's a
+    different event_id. Closing this needs a confirmed ordering/version
+    signal (unconfirmed against a live Polar payload) or a persisted
+    sequence column; not implemented.
+    """
+    if _is_memory_mode():
+        user = _MEMORY_USERS.get(user_id)
+        if user is None:
+            return
+        fresh_key = _MEMORY_BY_POLAR_ID.get(polar_customer_id)
+        candidate_key = fresh_key if fresh_key is not None else user.customer_api_key
+        if candidate_key is not None and _customer_api_key_claimed(candidate_key, user_id):
+            logger.warning(
+                "customer_api_key %s already claimed by another user — "
+                "skipping api_key link for user_id=%d", candidate_key, user_id,
+            )
+            candidate_key = user.customer_api_key  # leave this user's existing value untouched
+        _MEMORY_USERS[user_id] = dataclasses.replace(
+            user, polar_customer_id=polar_customer_id, customer_api_key=candidate_key
+        )
+        return
+    try:
+        await _pool.execute(
+            """
+            UPDATE users
+            SET polar_customer_id = $2,
+                customer_api_key = COALESCE(
+                    (SELECT api_key FROM customers WHERE polar_customer_id = $2),
+                    users.customer_api_key
+                )
+            WHERE id = $1
+            """,
+            user_id,
+            polar_customer_id,
+        )
+    except asyncpg.UniqueViolationError as exc:
+        logger.warning(
+            "customer_api_key conflict linking user_id=%d to polar_customer_id=%s "
+            "(%s) — writing polar_customer_id only", user_id, polar_customer_id, exc,
+        )
+        await _pool.execute(
+            "UPDATE users SET polar_customer_id = $2 WHERE id = $1",
+            user_id,
+            polar_customer_id,
+        )
+
+
+async def link_customer_api_key_by_polar_id(polar_customer_id: str, api_key: str) -> None:
+    """
+    benefit_grant side of the rendezvous: (re-)set customer_api_key for
+    every user already linked to this polar_customer_id (via
+    checkout.updated). No-op if checkout.updated hasn't recorded
+    polar_customer_id yet — the same UPDATE fires again when it does.
+
+    This OVERWRITES an existing customer_api_key — a re-subscription must
+    move the link onto the new key, not freeze on the old one. The partial
+    unique index on customer_api_key is what actually rejects the cross-
+    user case (this key is already claimed by a *different* user row);
+    each matching user is written independently so one user's conflict
+    can't roll back another user's successful link.
+
+    ⚠️  Same ordering caveat as link_checkout_to_user: this trusts api_key
+    as canonical for polar_customer_id with no recency check, same as
+    upsert_customer (called just before this, with the same event's key).
+    A redelivered stale benefit_grant that never reached
+    mark_event_processed can still overwrite a newer key written by a
+    different, already-completed event. See link_checkout_to_user for
+    the full failure mode.
+    """
+    if _is_memory_mode():
+        for uid, user in list(_MEMORY_USERS.items()):
+            if user.polar_customer_id != polar_customer_id:
+                continue
+            if _customer_api_key_claimed(api_key, uid):
+                logger.warning(
+                    "customer_api_key %s already claimed by another user — "
+                    "skipping api_key link for user_id=%d", api_key, uid,
+                )
+                continue
+            _MEMORY_USERS[uid] = dataclasses.replace(user, customer_api_key=api_key)
+        return
+    rows = await _pool.fetch(
+        "SELECT id FROM users WHERE polar_customer_id = $1",
+        polar_customer_id,
+    )
+    for row in rows:
+        try:
+            await _pool.execute(
+                "UPDATE users SET customer_api_key = $2 WHERE id = $1",
+                row["id"],
+                api_key,
+            )
+        except asyncpg.UniqueViolationError as exc:
+            logger.warning(
+                "customer_api_key conflict linking user_id=%s to polar_customer_id=%s "
+                "(%s) — skipped", row["id"], polar_customer_id, exc,
+            )
