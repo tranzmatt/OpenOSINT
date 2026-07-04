@@ -23,6 +23,7 @@ from enum import Enum
 from typing import NamedTuple
 
 from cloud import keys
+from cloud.config import SHODAN_CREDIT_COST
 
 
 class KeySource(str, Enum):
@@ -36,6 +37,7 @@ class ToolKeyConfig(NamedTuple):
     env_var: str | None      # platform env-var name; None when source is tenant/none
     source: KeySource
     provider: str | None     # canonical tenant-facing provider string; None for platform/none tools
+    credit_cost: int = 1     # credits charged per successful call (see cloud/config.py for tuning)
 
 
 # Single source of truth for v1 tool credentials.
@@ -44,7 +46,8 @@ TOOL_KEY_CONFIG: dict[str, ToolKeyConfig] = {
     "search_ip2location": ToolKeyConfig("IP2LOCATION_API_KEY", KeySource.platform, provider=None),
     # Platform pool — Shodan ToS requires attribution on every response (see
     # cloud/tools.py dispatch(); attribution wiring lands in a later commit).
-    "search_shodan":      ToolKeyConfig("SHODAN_API_KEY",      KeySource.platform, provider=None),
+    # Cost is a single tunable constant in cloud/config.SHODAN_CREDIT_COST.
+    "search_shodan":      ToolKeyConfig("SHODAN_API_KEY",      KeySource.platform, provider=None, credit_cost=SHODAN_CREDIT_COST),
     # BYOK required — tenant must POST /v1/keys with the provider string below.
     # Never platform/tenant_optional: upstream ToS forbids a shared platform key.
     "search_ip":          ToolKeyConfig("IPINFO_TOKEN",        KeySource.tenant,   provider="ipinfo"),
@@ -55,6 +58,18 @@ TOOL_KEY_CONFIG: dict[str, ToolKeyConfig] = {
     "search_dns":         ToolKeyConfig(None,                  KeySource.none,     provider=None),
     "search_domain":      ToolKeyConfig(None,                  KeySource.none,     provider=None),
 }
+
+
+def get_credit_cost(tool: str) -> int:
+    """Return the credit cost for `tool`. Unknown tools default to 1."""
+    cfg = TOOL_KEY_CONFIG.get(tool)
+    return cfg.credit_cost if cfg is not None else 1
+
+
+def is_platform_pool_tool(tool: str) -> bool:
+    """True if `tool` is backed by a shared platform-pool key (burst-limited)."""
+    cfg = TOOL_KEY_CONFIG.get(tool)
+    return cfg is not None and cfg.source == KeySource.platform
 
 
 # Censys stores two credentials (API ID + secret) under one BYOK provider

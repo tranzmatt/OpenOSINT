@@ -9,7 +9,7 @@ Public API
 init_pool()                              — call on app startup
 close_pool()                             — call on app shutdown
 get_customer(api_key)        → Customer | None
-decrement_credits(api_key)   → int | None   (None = credits were already 0)
+decrement_credits(api_key, cost=1) → int | None   (None = not enough credits)
 upsert_customer(...)                     — create or replace
 zero_credits_by_polar_id(...)
 refill_credits_by_polar_id(...)
@@ -109,25 +109,26 @@ async def get_customer(api_key: str) -> Customer | None:
 
 # ── write ─────────────────────────────────────────────────────────────────────
 
-async def decrement_credits(api_key: str) -> int | None:
+async def decrement_credits(api_key: str, cost: int = 1) -> int | None:
     """
-    Atomically subtract one credit if credits > 0.
+    Atomically subtract `cost` credits if credits >= cost.
 
     Returns the new credit balance on success.
-    Returns None if credits were already 0 (caller should respond 402).
+    Returns None if there weren't enough credits (caller should respond 402).
     """
     if _is_memory_mode():
         current = _MEMORY_CUSTOMERS.get(api_key)
-        if current is None or current.credits <= 0:
+        if current is None or current.credits < cost:
             return None
-        updated = dataclasses.replace(current, credits=current.credits - 1)
+        updated = dataclasses.replace(current, credits=current.credits - cost)
         _MEMORY_CUSTOMERS[api_key] = updated
         return updated.credits
     row = await _pool.fetchrow(
-        "UPDATE customers SET credits = credits - 1 "
-        "WHERE api_key = $1 AND credits > 0 "
+        "UPDATE customers SET credits = credits - $2 "
+        "WHERE api_key = $1 AND credits >= $2 "
         "RETURNING credits",
         api_key,
+        cost,
     )
     return row["credits"] if row else None
 

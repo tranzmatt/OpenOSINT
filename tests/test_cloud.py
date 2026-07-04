@@ -292,6 +292,72 @@ async def test_server_source_reads_env_key(client):
     assert db._MEMORY_CUSTOMERS["key-server"].credits == 4
 
 
+# ── (h2) per-tool credit cost + platform-pool burst limiter ─────────────────
+
+
+async def test_shodan_costs_configured_credit_amount(client):
+    from cloud.config import SHODAN_CREDIT_COST
+
+    _seed("key-shodan-cost", credits=10)
+
+    async def fake_dispatch(tool, target, api_key=None):
+        return {
+            "tool": tool,
+            "target": target,
+            "timestamp": "2026-01-01T00:00:00+00:00",
+            "results": ["[Shodan] Host: 1.2.3.4"],
+            "error": None,
+        }
+
+    with patch("cloud.tools.dispatch", new=fake_dispatch):
+        with patch.dict(os.environ, {"SHODAN_API_KEY": "srv_shodan_key"}):
+            resp = await client.post(
+                "/v1/enrich",
+                json={"tool": "search_shodan", "target": "1.2.3.4"},
+                headers={"X-API-Key": "key-shodan-cost"},
+            )
+
+    assert resp.status_code == 200
+    assert resp.json()["credits_left"] == 10 - SHODAN_CREDIT_COST
+    assert db._MEMORY_CUSTOMERS["key-shodan-cost"].credits == 10 - SHODAN_CREDIT_COST
+
+
+async def test_platform_pool_burst_limit_returns_429(client):
+    from cloud.config import SHODAN_CREDIT_COST
+    from cloud.rate_limit import InProcessSlidingWindowLimiter
+
+    _seed("key-burst", credits=10)
+
+    async def fake_dispatch(tool, target, api_key=None):
+        return {
+            "tool": tool,
+            "target": target,
+            "timestamp": "2026-01-01T00:00:00+00:00",
+            "results": ["[Shodan] Host: 1.2.3.4"],
+            "error": None,
+        }
+
+    one_call_limiter = InProcessSlidingWindowLimiter(window_secs=60, max_calls=1)
+    with patch("cloud.rate_limit.platform_pool_limiter", one_call_limiter):
+        with patch("cloud.tools.dispatch", new=fake_dispatch):
+            with patch.dict(os.environ, {"SHODAN_API_KEY": "srv_shodan_key"}):
+                first = await client.post(
+                    "/v1/enrich",
+                    json={"tool": "search_shodan", "target": "1.2.3.4"},
+                    headers={"X-API-Key": "key-burst"},
+                )
+                second = await client.post(
+                    "/v1/enrich",
+                    json={"tool": "search_shodan", "target": "1.2.3.4"},
+                    headers={"X-API-Key": "key-burst"},
+                )
+
+    assert first.status_code == 200
+    assert second.status_code == 429
+    # Rejected (429) call must not be charged
+    assert db._MEMORY_CUSTOMERS["key-burst"].credits == 10 - SHODAN_CREDIT_COST
+
+
 # ── (i) upstream error leaves credits unchanged ──────────────────────────────
 
 

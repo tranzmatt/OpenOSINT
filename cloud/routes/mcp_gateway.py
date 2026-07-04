@@ -6,7 +6,8 @@ Exposes exactly the same tools as /v1/enrich (cloud/tools.ALLOW_LIST).
 No person-search, breach, or leaked-data tools.
 
 Auth: Authorization: Bearer <openosint-cloud-api-key>
-Metering: 1 credit per successful call — same rules as /v1/enrich.
+Metering: per-tool credit cost (see cloud/key_sources.get_credit_cost) — same
+rules as /v1/enrich. Platform-pool tools are also burst-limited per tenant.
 All existing functions (dispatch, resolve_key, decrement_credits) are reused.
 """
 from __future__ import annotations
@@ -18,9 +19,9 @@ from contextvars import ContextVar
 from mcp.server.fastmcp import FastMCP
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from cloud import db, tools
+from cloud import db, rate_limit, tools
 from cloud.config import CHECKOUT_URLS, TOOL_TIMEOUT_SECONDS
-from cloud.key_sources import resolve_key
+from cloud.key_sources import get_credit_cost, is_platform_pool_tool, resolve_key
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,13 @@ async def _run_mcp_tool(tool_name: str, target: str) -> str:
     except ValueError as exc:
         return f"Error: {exc}"
 
-    if customer.credits <= 0:
+    if is_platform_pool_tool(tool_name) and not rate_limit.platform_pool_limiter.allow(
+        f"{customer.api_key}:{tool_name}"
+    ):
+        return f"Error: Too many '{tool_name}' requests. Please slow down and try again shortly."
+
+    cost = get_credit_cost(tool_name)
+    if customer.credits < cost:
         return _credits_error(customer.plan)
 
     try:
@@ -86,7 +93,7 @@ async def _run_mcp_tool(tool_name: str, target: str) -> str:
     is_error = any(first_line.startswith(p) for p in _ERROR_PREFIXES)
 
     if not is_error:
-        new_credits = await db.decrement_credits(customer.api_key)
+        new_credits = await db.decrement_credits(customer.api_key, cost)
         if new_credits is None:
             # Race condition: concurrent request drained the last credit
             return _credits_error(customer.plan)

@@ -21,6 +21,19 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "")
 # 30 s (H12 error).  Keep this strictly below that limit.
 TOOL_TIMEOUT_SECONDS: int = 25
 
+# ── Per-tool credit cost ───────────────────────────────────────────────────────
+# Platform-pool tools cost upstream_cost + margin; the single named constant
+# below is the only place Shodan's cost needs tuning (referenced once, in
+# cloud/key_sources.TOOL_KEY_CONFIG). Placeholder until real usage data comes in.
+SHODAN_CREDIT_COST: int = 4
+
+# ── Platform-pool burst limiter ────────────────────────────────────────────────
+# Burst smoothing only, not the spend cap (that's the atomic Postgres credit
+# decrement in cloud/db.py). Keeps one tenant from hammering a shared platform
+# key (Shodan, IP2Location) with rapid-fire requests.
+PLATFORM_BURST_WINDOW_SECS: float = float(os.environ.get("PLATFORM_BURST_WINDOW_SECS", "60"))
+PLATFORM_BURST_MAX_CALLS: int = int(os.environ.get("PLATFORM_BURST_MAX_CALLS", "20"))
+
 # ── Plan definitions ──────────────────────────────────────────────────────────
 # Credits granted when a customer purchases / activates a plan.
 PLAN_CREDITS: dict[str, int] = {

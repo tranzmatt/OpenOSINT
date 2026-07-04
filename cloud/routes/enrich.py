@@ -7,10 +7,15 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from cloud import db, polar, tools
+from cloud import db, polar, rate_limit, tools
 from cloud.auth import get_customer
 from cloud.config import CHECKOUT_URLS, TOOL_TIMEOUT_SECONDS
-from cloud.key_sources import MissingCredentialError, resolve_key
+from cloud.key_sources import (
+    MissingCredentialError,
+    get_credit_cost,
+    is_platform_pool_tool,
+    resolve_key,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -54,8 +59,19 @@ async def enrich(
     except MissingCredentialError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 
+    # 429 — burst smoothing on shared platform-pool keys (not the spend cap)
+    if is_platform_pool_tool(body.tool) and not rate_limit.platform_pool_limiter.allow(
+        f"{customer.api_key}:{body.tool}"
+    ):
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many '{body.tool}' requests. Please slow down and try again shortly.",
+        )
+
+    cost = get_credit_cost(body.tool)
+
     # 402 — fast pre-check (avoids a DB round-trip for obviously empty accounts)
-    if customer.credits <= 0:
+    if customer.credits < cost:
         _raise_402(customer.plan)
 
     # Run the tool first; we only charge on a successful result
@@ -83,8 +99,8 @@ async def enrich(
             credits_left=customer.credits,
         )
 
-    # Atomically deduct one credit (guards against concurrent exhaustion)
-    new_credits = await db.decrement_credits(customer.api_key)
+    # Atomically deduct `cost` credits (guards against concurrent exhaustion)
+    new_credits = await db.decrement_credits(customer.api_key, cost)
     if new_credits is None:
         # Race: a concurrent request drained the last credit between pre-check and now
         _raise_402(customer.plan)
