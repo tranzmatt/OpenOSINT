@@ -182,6 +182,38 @@ async def test_key_store_retrieve_roundtrip():
     assert keys.mask("abcde") == "****bcde"
 
 
+# ── (e1) MultiFernet rotation: old secrets still decrypt, writes use new key ──
+
+
+async def test_multifernet_rotation_old_secret_decrypts_and_reencrypts():
+    from cryptography.fernet import Fernet, InvalidToken
+
+    key_a = Fernet.generate_key().decode()
+    key_b = Fernet.generate_key().decode()
+
+    # Pre-rotation: single key A, matches today's single-key setups.
+    with patch.dict(os.environ, {"CONFIG_ENCRYPTION_KEY": key_a}):
+        keys._fernet = None
+        await keys.store_key("key-rotate", "ipinfo", "secret_under_a")
+
+    # Rotate: B becomes primary, A kept only so old ciphertext still decrypts.
+    with patch.dict(os.environ, {"CONFIG_ENCRYPTION_KEY": f"{key_b},{key_a}"}):
+        keys._fernet = None
+
+        # Old secret, encrypted under A, still readable post-rotation.
+        assert await keys.get_key("key-rotate", "ipinfo") == "secret_under_a"
+
+        # Re-encrypts under the new primary (B) on next write.
+        await keys.store_key("key-rotate", "ipinfo", "secret_under_b")
+        new_ciphertext = keys._MEMORY_KEYS[("key-rotate", "ipinfo")]
+        assert Fernet(key_b).decrypt(new_ciphertext) == b"secret_under_b"
+        with pytest.raises(InvalidToken):
+            Fernet(key_a).decrypt(new_ciphertext)  # not readable by the old key alone
+
+        # Public API round-trips correctly against the new ciphertext too.
+        assert await keys.get_key("key-rotate", "ipinfo") == "secret_under_b"
+
+
 # ── (e2) censys compound secret: bad format rejected, good format round-trips ─
 
 

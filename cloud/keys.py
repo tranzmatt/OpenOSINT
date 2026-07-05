@@ -1,28 +1,36 @@
 """
 OpenOSINT Cloud — encrypted customer key storage.
 
-Secrets are encrypted at rest with Fernet symmetric encryption.
-CONFIG_ENCRYPTION_KEY must be set when DATABASE_URL is set (production).
-In test / in-memory mode an ephemeral key is generated automatically.
+Secrets are encrypted at rest with Fernet symmetric encryption, via
+MultiFernet for rotation support. CONFIG_ENCRYPTION_KEY must be set when
+DATABASE_URL is set (production). In test / in-memory mode an ephemeral
+key is generated automatically.
 
 Generate a production key:
     python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+
+To rotate: set CONFIG_ENCRYPTION_KEY to a comma-separated list, new key
+first — "new_key,old_key". The first key encrypts everything going
+forward; every key in the list is tried on decrypt, so secrets stored
+under an old key keep working until they're naturally rewritten (each
+store_key() call re-encrypts under the new primary). Drop the old key
+from the list only once nothing is left encrypted under it.
 """
 from __future__ import annotations
 
 import os
 
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, MultiFernet
 
 from cloud import db
 
 # In-memory store for tests: (api_key, provider) → encrypted bytes
 _MEMORY_KEYS: dict[tuple[str, str], bytes] = {}
 
-_fernet: Fernet | None = None
+_fernet: MultiFernet | None = None
 
 
-def _get_fernet() -> Fernet:
+def _get_fernet() -> MultiFernet:
     global _fernet
     if _fernet is not None:
         return _fernet
@@ -36,7 +44,10 @@ def _get_fernet() -> Fernet:
             )
         # In-memory / test mode — ephemeral key, never persisted
         raw_key = Fernet.generate_key().decode()
-    _fernet = Fernet(raw_key.encode())
+    # Comma-separated for rotation: first key is primary (used to encrypt),
+    # all keys are tried in order on decrypt (see module docstring).
+    fernets = [Fernet(k.strip().encode()) for k in raw_key.split(",") if k.strip()]
+    _fernet = MultiFernet(fernets)
     return _fernet
 
 
