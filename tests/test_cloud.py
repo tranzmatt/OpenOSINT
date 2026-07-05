@@ -752,6 +752,26 @@ async def test_oauth_callback_redirects_to_dashboard_and_dashboard_loads(client,
     assert "text/html" in dash_resp.headers["content-type"]
 
 
+async def test_checkout_return_requires_login(client):
+    resp = await client.get("/checkout/return")
+    assert resp.status_code == 401
+
+
+async def test_checkout_return_renders_for_logged_in_user(client, monkeypatch):
+    from cloud.routes import oauth as oauth_routes
+
+    class FakeOAuthClient:
+        async def authorize_access_token(self, request):
+            return {"userinfo": {"sub": "google_return", "email": "return@example.com"}}
+
+    monkeypatch.setattr(oauth_routes.oauth, "create_client", lambda provider: FakeOAuthClient())
+    await client.get("/auth/callback/google", follow_redirects=False)
+
+    resp = await client.get("/checkout/return")
+    assert resp.status_code == 200
+    assert "text/html" in resp.headers["content-type"]
+
+
 async def test_first_time_link_via_checkout_still_works_after_coalesce_flip():
     """Base case for link_checkout_to_user's COALESCE flip: a user who has
     never been linked before (customer_api_key is None) must still pick up
