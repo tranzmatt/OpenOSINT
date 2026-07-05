@@ -146,14 +146,8 @@ async def search_domain(target: str) -> str:
     return await _run_mcp_tool("search_domain", target)
 
 
-@_mcp.tool(description=(
-    "Look up an IP host or run a keyword search via Shodan. Returns open ports, "
-    "banners, and device/service fingerprints. Data provided by Shodan (shodan.io)."
-))
-async def search_shodan(target: str) -> str:
-    """target: IPv4 address for a host lookup, or a keyword query for a search"""
-    return await _run_mcp_tool("search_shodan", target)
-
+# ponytail: search_shodan intentionally not registered here — see the same
+# note in cloud/tools.py. Add the @_mcp.tool block back once ALLOW_LIST has it.
 
 @_mcp.tool(description=(
     "Check an IP, domain, URL, or file hash against VirusTotal's 70+ antivirus "

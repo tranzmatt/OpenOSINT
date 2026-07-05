@@ -333,6 +333,7 @@ async def test_server_source_reads_env_key(client):
 
 async def test_shodan_costs_configured_credit_amount(client):
     from cloud.config import SHODAN_CREDIT_COST
+    from cloud.tools import _SHODAN_ENTRY
 
     _seed("key-shodan-cost", credits=10)
 
@@ -345,13 +346,17 @@ async def test_shodan_costs_configured_credit_amount(client):
             "error": None,
         }
 
-    with patch("cloud.tools.dispatch", new=fake_dispatch):
-        with patch.dict(os.environ, {"SHODAN_API_KEY": "srv_shodan_key"}):
-            resp = await client.post(
-                "/v1/enrich",
-                json={"tool": "search_shodan", "target": "1.2.3.4"},
-                headers={"X-API-Key": "key-shodan-cost"},
-            )
+    # search_shodan is deliberately absent from ALLOW_LIST until SHODAN_API_KEY
+    # is set in prod (see cloud/tools.py) — reinject it here so this test can
+    # still exercise the real >1-cost billing path via _SHODAN_ENTRY.
+    with patch.dict("cloud.tools.ALLOW_LIST", {"search_shodan": _SHODAN_ENTRY}):
+        with patch("cloud.tools.dispatch", new=fake_dispatch):
+            with patch.dict(os.environ, {"SHODAN_API_KEY": "srv_shodan_key"}):
+                resp = await client.post(
+                    "/v1/enrich",
+                    json={"tool": "search_shodan", "target": "1.2.3.4"},
+                    headers={"X-API-Key": "key-shodan-cost"},
+                )
 
     assert resp.status_code == 200
     assert resp.json()["credits_left"] == 10 - SHODAN_CREDIT_COST
@@ -361,6 +366,7 @@ async def test_shodan_costs_configured_credit_amount(client):
 async def test_platform_pool_burst_limit_returns_429(client):
     from cloud.config import SHODAN_CREDIT_COST
     from cloud.rate_limit import InProcessSlidingWindowLimiter
+    from cloud.tools import _SHODAN_ENTRY
 
     _seed("key-burst", credits=10)
 
@@ -373,20 +379,24 @@ async def test_platform_pool_burst_limit_returns_429(client):
             "error": None,
         }
 
+    # search_shodan is deliberately absent from ALLOW_LIST — reinject it (see
+    # test_shodan_costs_configured_credit_amount) so this still exercises the
+    # real platform-pool burst limiter via a >1-cost tool.
     one_call_limiter = InProcessSlidingWindowLimiter(window_secs=60, max_calls=1)
-    with patch("cloud.rate_limit.platform_pool_limiter", one_call_limiter):
-        with patch("cloud.tools.dispatch", new=fake_dispatch):
-            with patch.dict(os.environ, {"SHODAN_API_KEY": "srv_shodan_key"}):
-                first = await client.post(
-                    "/v1/enrich",
-                    json={"tool": "search_shodan", "target": "1.2.3.4"},
-                    headers={"X-API-Key": "key-burst"},
-                )
-                second = await client.post(
-                    "/v1/enrich",
-                    json={"tool": "search_shodan", "target": "1.2.3.4"},
-                    headers={"X-API-Key": "key-burst"},
-                )
+    with patch.dict("cloud.tools.ALLOW_LIST", {"search_shodan": _SHODAN_ENTRY}):
+        with patch("cloud.rate_limit.platform_pool_limiter", one_call_limiter):
+            with patch("cloud.tools.dispatch", new=fake_dispatch):
+                with patch.dict(os.environ, {"SHODAN_API_KEY": "srv_shodan_key"}):
+                    first = await client.post(
+                        "/v1/enrich",
+                        json={"tool": "search_shodan", "target": "1.2.3.4"},
+                        headers={"X-API-Key": "key-burst"},
+                    )
+                    second = await client.post(
+                        "/v1/enrich",
+                        json={"tool": "search_shodan", "target": "1.2.3.4"},
+                        headers={"X-API-Key": "key-burst"},
+                    )
 
     assert first.status_code == 200
     assert second.status_code == 429
@@ -424,6 +434,8 @@ async def test_upstream_error_leaves_credits_unchanged(client):
 
 async def test_platform_pool_upstream_error_charges_zero_credits(client):
     """A >1-cost platform tool (Shodan) must not charge on upstream failure."""
+    from cloud.tools import _SHODAN_ENTRY
+
     _seed("key-shodan-err", credits=10)
 
     error_result = {
@@ -434,13 +446,16 @@ async def test_platform_pool_upstream_error_charges_zero_credits(client):
         "error": None,
     }
 
-    with patch("cloud.tools.dispatch", new=AsyncMock(return_value=error_result)):
-        with patch.dict(os.environ, {"SHODAN_API_KEY": "srv_shodan_key"}):
-            resp = await client.post(
-                "/v1/enrich",
-                json={"tool": "search_shodan", "target": "1.2.3.4"},
-                headers={"X-API-Key": "key-shodan-err"},
-            )
+    # search_shodan is deliberately absent from ALLOW_LIST — reinject it (see
+    # test_shodan_costs_configured_credit_amount).
+    with patch.dict("cloud.tools.ALLOW_LIST", {"search_shodan": _SHODAN_ENTRY}):
+        with patch("cloud.tools.dispatch", new=AsyncMock(return_value=error_result)):
+            with patch.dict(os.environ, {"SHODAN_API_KEY": "srv_shodan_key"}):
+                resp = await client.post(
+                    "/v1/enrich",
+                    json={"tool": "search_shodan", "target": "1.2.3.4"},
+                    headers={"X-API-Key": "key-shodan-err"},
+                )
 
     assert resp.status_code == 200
     assert resp.json()["results"] == ["Scan error: Shodan quota exceeded"]
@@ -454,7 +469,7 @@ from cloud.tools import ALLOW_LIST as _ALLOW_LIST
 
 _EXPECTED_TOOLS = {
     "search_ip", "search_ip2location", "search_abuseipdb", "search_dns", "search_domain",
-    "search_shodan", "search_virustotal", "search_censys",
+    "search_virustotal", "search_censys",
 }
 
 
@@ -523,8 +538,12 @@ async def test_benefit_grant_created_fetches_full_license_key():
 async def test_dispatch_appends_shodan_attribution():
     from cloud import tools as cloud_tools
 
-    with patch("cloud.tools.run_shodan_osint", new=AsyncMock(return_value="[Shodan] Host: 1.2.3.4")):
-        result = await cloud_tools.dispatch("search_shodan", "1.2.3.4", api_key="k")
+    # search_shodan is deliberately absent from ALLOW_LIST — reinject it (see
+    # test_shodan_costs_configured_credit_amount) so dispatch() still runs the
+    # real attribution-appending path.
+    with patch.dict("cloud.tools.ALLOW_LIST", {"search_shodan": cloud_tools._SHODAN_ENTRY}):
+        with patch("cloud.tools.run_shodan_osint", new=AsyncMock(return_value="[Shodan] Host: 1.2.3.4")):
+            result = await cloud_tools.dispatch("search_shodan", "1.2.3.4", api_key="k")
 
     assert result["results"][-1] == "Data provided by Shodan (shodan.io)."
 
@@ -542,15 +561,20 @@ async def test_shodan_attribution_reaches_rest_response_body(client):
     """Attribution must survive to the actual JSON body the client parses,
     not just the internal dispatch() dict — real dispatch() runs here, only
     the low-level upstream call is mocked."""
+    from cloud.tools import _SHODAN_ENTRY
+
     _seed("key-shodan-attr", credits=10)
 
-    with patch("cloud.tools.run_shodan_osint", new=AsyncMock(return_value="[Shodan] Host: 1.2.3.4")):
-        with patch.dict(os.environ, {"SHODAN_API_KEY": "srv_shodan_key"}):
-            resp = await client.post(
-                "/v1/enrich",
-                json={"tool": "search_shodan", "target": "1.2.3.4"},
-                headers={"X-API-Key": "key-shodan-attr"},
-            )
+    # search_shodan is deliberately absent from ALLOW_LIST — reinject it (see
+    # test_shodan_costs_configured_credit_amount).
+    with patch.dict("cloud.tools.ALLOW_LIST", {"search_shodan": _SHODAN_ENTRY}):
+        with patch("cloud.tools.run_shodan_osint", new=AsyncMock(return_value="[Shodan] Host: 1.2.3.4")):
+            with patch.dict(os.environ, {"SHODAN_API_KEY": "srv_shodan_key"}):
+                resp = await client.post(
+                    "/v1/enrich",
+                    json={"tool": "search_shodan", "target": "1.2.3.4"},
+                    headers={"X-API-Key": "key-shodan-attr"},
+                )
 
     assert resp.status_code == 200
     body = resp.json()

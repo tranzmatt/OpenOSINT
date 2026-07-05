@@ -36,6 +36,11 @@ def _censys_keys(combined: str | None) -> dict[str, str] | None:
     return {"CENSYS_API_ID": api_id, "CENSYS_SECRET": api_secret}
 
 
+# ponytail: kept out of ALLOW_LIST until SHODAN_API_KEY is set in prod (no key
+# = every call fails upstream for every customer). Re-enable by adding
+# "search_shodan": _SHODAN_ENTRY, back to ALLOW_LIST below — nothing else to change.
+_SHODAN_ENTRY = lambda t, k: run_shodan_osint(query=t, timeout_seconds=TOOL_TIMEOUT_SECONDS, api_key=k)
+
 # Each value is a coroutine factory: (target: str, api_key: str | None) → Awaitable[str].
 ALLOW_LIST: dict[str, Callable[[str, str | None], Coroutine[Any, Any, str]]] = {
     "search_ip":          lambda t, k: run_ip_osint(ip=t, timeout_seconds=TOOL_TIMEOUT_SECONDS, api_key=k),
@@ -43,7 +48,6 @@ ALLOW_LIST: dict[str, Callable[[str, str | None], Coroutine[Any, Any, str]]] = {
     "search_abuseipdb":   lambda t, k: run_abuseipdb_osint(ip=t, timeout_seconds=TOOL_TIMEOUT_SECONDS, api_key=k),
     "search_dns":         lambda t, _: run_dns_osint(domain=t, timeout_seconds=TOOL_TIMEOUT_SECONDS),
     "search_domain":      lambda t, _: run_domain_osint(domain=t, timeout_seconds=TOOL_TIMEOUT_SECONDS),
-    "search_shodan":      lambda t, k: run_shodan_osint(query=t, timeout_seconds=TOOL_TIMEOUT_SECONDS, api_key=k),
     "search_virustotal":  lambda t, k: run_virustotal_osint(target=t, timeout_seconds=TOOL_TIMEOUT_SECONDS, api_key=k),
     "search_censys":      lambda t, k: run_censys_osint(t, TOOL_TIMEOUT_SECONDS, api_keys=_censys_keys(k)),
 }

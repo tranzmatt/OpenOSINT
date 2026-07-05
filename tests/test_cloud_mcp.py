@@ -112,7 +112,6 @@ _EXPECTED_MCP_TOOLS = {
     "search_abuseipdb",
     "search_dns",
     "search_domain",
-    "search_shodan",
     "search_virustotal",
     "search_censys",
 }
@@ -304,12 +303,20 @@ async def test_auth_middleware_sets_none_for_missing_header():
 async def test_shodan_attribution_reaches_mcp_text_result():
     """_run_mcp_tool's return value is the exact string FastMCP wraps as the
     tool's TextContent block — what an MCP client renders to the user. Real
-    dispatch() runs here; only the low-level upstream call is mocked."""
+    dispatch() runs here; only the low-level upstream call is mocked.
+
+    search_shodan is deliberately absent from ALLOW_LIST (no SHODAN_API_KEY
+    in prod yet, see cloud/tools.py) and no longer registered as an MCP tool
+    — reinject it into ALLOW_LIST for this test only so _run_mcp_tool's
+    dispatch() call still exercises the real attribution path."""
+    from cloud.tools import _SHODAN_ENTRY
+
     customer = _seed("key-mcp-shodan-attr", credits=10)
 
-    with patch("cloud.tools.run_shodan_osint", new=AsyncMock(return_value="[Shodan] Host: 1.2.3.4")):
-        with patch.dict(os.environ, {"SHODAN_API_KEY": "srv_shodan_key"}):
-            async with _as_customer(customer):
-                result = await _run_mcp_tool("search_shodan", "1.2.3.4")
+    with patch.dict("cloud.tools.ALLOW_LIST", {"search_shodan": _SHODAN_ENTRY}):
+        with patch("cloud.tools.run_shodan_osint", new=AsyncMock(return_value="[Shodan] Host: 1.2.3.4")):
+            with patch.dict(os.environ, {"SHODAN_API_KEY": "srv_shodan_key"}):
+                async with _as_customer(customer):
+                    result = await _run_mcp_tool("search_shodan", "1.2.3.4")
 
     assert result == "[Shodan] Host: 1.2.3.4\nData provided by Shodan (shodan.io)."
