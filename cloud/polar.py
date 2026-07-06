@@ -107,6 +107,15 @@ def verify_webhook_signature(
                 _, sig_val = token.split(",", 1)
                 if hmac.compare_digest(expected, sig_val):
                     return True
+        if os.environ.get("POLAR_WEBHOOK_DEBUG"):
+            # ponytail: temporary diagnostic, remove once mismatch is root-caused.
+            # Logs only length/prefixes — never the secret or full signatures.
+            logger.warning(
+                "sig debug: key_len=%d expected_prefix=%s recv_prefixes=%s",
+                len(key),
+                expected[:8],
+                [t.split(",", 1)[-1][:8] for t in msg_signature.split() if "," in t],
+            )
         logger.warning("Webhook signature mismatch")
         return False
     except Exception as exc:
