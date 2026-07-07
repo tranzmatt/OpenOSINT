@@ -109,7 +109,7 @@ openosint > investigate target@example.com
 </td>
 <td align="center" valign="top" width="200">
 <a href="https://www.rapidproxy.io/?ref=openosint" rel="noopener sponsored">
-<img src="https://raw.githubusercontent.com/OpenOSINT/OpenOSINT/main/docs/assets/rapidproxy-logo.png" alt="RapidProxy — residential proxy provider" width="140">
+<img src="https://raw.githubusercontent.com/OpenOSINT/OpenOSINT/main/docs/assets/rapidproxy-logo.svg" alt="RapidProxy — residential proxy provider" width="140">
 </a><br>
 <sub><b>RapidProxy</b></sub><br>
 <sub>Residential Proxies</sub><br>
@@ -657,7 +657,7 @@ Open categories: **proxy detection** · **breach/credential data** · **threat &
 Enhanced IP geolocation, ISP, VPN/Proxy/Tor, and datacenter detection. Powers `search_ip2location`.
 
 <a href="https://www.rapidproxy.io/?ref=openosint" rel="noopener sponsored">
-<img src="https://raw.githubusercontent.com/OpenOSINT/OpenOSINT/main/docs/assets/rapidproxy-logo.png" alt="RapidProxy" width="140">
+<img src="https://raw.githubusercontent.com/OpenOSINT/OpenOSINT/main/docs/assets/rapidproxy-logo.svg" alt="RapidProxy" width="140">
 </a>
 
 **[RapidProxy](https://www.rapidproxy.io/?ref=openosint)** — Featured Integration · Residential Proxies
