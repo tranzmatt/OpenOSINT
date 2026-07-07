@@ -48,6 +48,7 @@ Fiscal host: Open Collective / Open Source Collective — [opencollective.com/op
 | Threat & Domain Intelligence | **OPEN** |
 | Email / Identity Lookup | **OPEN** |
 | IP Geolocation & IP Intelligence | TAKEN — IP2Location.io |
+| Residential Proxies | TAKEN — RapidProxy |
 
 ## Referral funnel
 
@@ -83,6 +84,8 @@ CLI banner, Web UI, and `openosint sponsors` update automatically at runtime.
 ## Current sponsors
 
 **[IP2Location.io](https://www.ip2location.io)** — Featured Integration (IP Geolocation & IP Intelligence)
+
+**[RapidProxy](https://rapidproxy.io/?utm_source=openosint&utm_medium=readme&utm_campaign=featured)** — Featured Integration (Residential Proxies)
 
 ## Contact
 
